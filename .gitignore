@@ -1,0 +1,14 @@
+node_modules/
+.npm-cache/
+.pip-cache/
+.next/
+out/
+dist/
+target/
+__pycache__/
+.venv/
+.env
+.env.*
+!.env.example
+*.pyc
+*.log

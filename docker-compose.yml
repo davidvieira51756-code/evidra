@@ -1,0 +1,19 @@
+services:
+  frontend:
+    build:
+      context: ./apps/frontend
+    ports:
+      - "3000:3000"
+
+  core-api:
+    build:
+      context: ./apps/core-api
+    ports:
+      - "8080:8080"
+
+  ai-service:
+    build:
+      context: ./apps/ai-service
+    ports:
+      - "8000:8000"
+
