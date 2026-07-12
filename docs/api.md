@@ -158,3 +158,54 @@ It does not yet include:
 - user accounts
 - contextual source-code analysis
 - pull request integration
+
+## AI Service: Explain Finding
+
+```http
+POST /findings/explain
+```
+
+This endpoint lives in `apps/ai-service`.
+
+It receives one structured finding and returns a structured explanation. The current implementation is deterministic placeholder logic. It does not call an LLM yet.
+
+### Request
+
+```json
+{
+  "finding": {
+    "id": "finding-1",
+    "title": "RSA-OAEP usage detected in bcprov-jdk18on",
+    "cryptoAssetName": "bcprov-jdk18on",
+    "status": "QUANTUM_VULNERABLE",
+    "reason": "The algorithm is explicitly recognized as vulnerable to cryptographically relevant quantum attacks.",
+    "algorithm": "RSA-OAEP",
+    "componentName": "bcprov-jdk18on",
+    "componentVersion": "1.78",
+    "recommendation": "Assess migration impact and plan a transition path to a post-quantum or hybrid design.",
+    "evidence": [
+      "property:evidra.crypto.algorithm=RSA-OAEP"
+    ]
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "findingId": "finding-1",
+  "summary": "RSA-OAEP was detected in bcprov-jdk18on with status QUANTUM_VULNERABLE.",
+  "riskExplanation": "RSA-OAEP is classified as quantum-vulnerable by the deterministic rules...",
+  "migrationConsiderations": [
+    "Map the affected code paths and external integrations."
+  ],
+  "suggestedTests": [
+    "Verify old data remains readable or verifiable during migration."
+  ],
+  "limitations": [
+    "This explanation is generated from structured finding data only.",
+    "It is deterministic placeholder output and does not use GenAI or RAG yet."
+  ]
+}
+```
