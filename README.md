@@ -201,6 +201,8 @@ Também é possível gerar um relatório simples em Markdown a partir do mesmo C
 curl -F "file=@apps/core-api/src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/report
 ```
 
+O contrato completo da API MVP esta documentado em [docs/api.md](docs/api.md).
+
 ## Laboratório Java Futuro
 
 Em paralelo ao produto, o projeto deve incluir um pequeno laboratório Java para estudar uma migração real:
