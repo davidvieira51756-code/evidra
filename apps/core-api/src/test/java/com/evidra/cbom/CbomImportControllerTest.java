@@ -1,7 +1,9 @@
 package com.evidra.cbom;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -86,6 +88,32 @@ class CbomImportControllerTest {
                 .andExpect(jsonPath("$.findings[0].algorithm", is("AES-GCM")))
                 .andExpect(jsonPath("$.findings[0].status", is("REVIEW_REQUIRED")))
                 .andExpect(jsonPath("$.findings[0].reason", is("The algorithm is not explicitly classified yet, so it requires manual review.")));
+    }
+
+    @Test
+    void exportsMarkdownReportForValidCbom() throws Exception {
+        MockMultipartFile file = cbomFixture("rsa-oaep-cbom.json");
+
+        mockMvc.perform(multipart("/api/cboms/report").file(file))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/markdown"))
+                .andExpect(content().string(containsString("# Evidra CBOM Report")))
+                .andExpect(content().string(containsString("- Format: CycloneDX")))
+                .andExpect(content().string(containsString("- Crypto assets: 1")))
+                .andExpect(content().string(containsString("- Findings: 1")))
+                .andExpect(content().string(containsString("### RSA-OAEP usage detected in bcprov-jdk18on")))
+                .andExpect(content().string(containsString("- Status: QUANTUM_VULNERABLE")));
+    }
+
+    @Test
+    void exportsMarkdownReportWithoutFindings() throws Exception {
+        MockMultipartFile file = cbomFixture("no-crypto-cbom.json");
+
+        mockMvc.perform(multipart("/api/cboms/report").file(file))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/markdown"))
+                .andExpect(content().string(containsString("- Findings: 0")))
+                .andExpect(content().string(containsString("No cryptographic findings were generated.")));
     }
 
     @Test
