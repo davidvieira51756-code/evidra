@@ -33,6 +33,15 @@ type AnalysisResponse = {
   nextActions: string[];
 };
 
+type FindingExplanation = {
+  findingId: string;
+  summary: string;
+  riskExplanation: string;
+  migrationConsiderations: string[];
+  suggestedTests: string[];
+  limitations: string[];
+};
+
 type ApiError = {
   code?: string;
   message?: string;
@@ -40,6 +49,8 @@ type ApiError = {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_CORE_API_URL ?? "http://localhost:8080";
+const AI_SERVICE_URL =
+  process.env.NEXT_PUBLIC_AI_SERVICE_URL ?? "http://localhost:8000";
 
 const statusLabels: Record<string, string> = {
   QUANTUM_VULNERABLE: "Quantum vulnerable",
@@ -258,6 +269,39 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 
 function FindingCard({ finding }: { finding: Finding }) {
+  const [explanation, setExplanation] = useState<FindingExplanation | null>(null);
+  const [isExplaining, setIsExplaining] = useState(false);
+  const [explanationError, setExplanationError] = useState<string | null>(null);
+
+  async function handleExplainFinding() {
+    setIsExplaining(true);
+    setExplanationError(null);
+
+    try {
+      const response = await fetch(`${AI_SERVICE_URL}/findings/explain`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ finding }),
+      });
+
+      if (!response.ok) {
+        const apiError = (await response.json().catch(() => ({}))) as ApiError;
+        throw new Error(apiError.message ?? "Finding explanation failed.");
+      }
+
+      setExplanation((await response.json()) as FindingExplanation);
+    } catch (caughtError) {
+      setExplanation(null);
+      setExplanationError(
+        caughtError instanceof Error ? caughtError.message : "Finding explanation failed.",
+      );
+    } finally {
+      setIsExplaining(false);
+    }
+  }
+
   return (
     <article className="rounded border border-[#d8d8d2] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -284,7 +328,55 @@ function FindingCard({ finding }: { finding: Finding }) {
       </dl>
       <p className="mt-4 text-sm leading-6 text-[#4a4d49]">{finding.reason}</p>
       <p className="mt-2 text-sm leading-6 text-[#4a4d49]">{finding.recommendation}</p>
+
+      <div className="mt-4">
+        <button
+          className="rounded border border-[#bfc2bb] px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:text-[#9a9d98]"
+          type="button"
+          onClick={handleExplainFinding}
+          disabled={isExplaining}
+        >
+          {isExplaining ? "Explaining..." : "Explain finding"}
+        </button>
+      </div>
+
+      {explanationError ? (
+        <div className="mt-4 rounded border border-[#d9a4a0] bg-[#fff2f1] p-3 text-sm text-[#8b2c25]">
+          {explanationError}
+        </div>
+      ) : null}
+
+      {explanation ? <FindingExplanationPanel explanation={explanation} /> : null}
     </article>
+  );
+}
+
+function FindingExplanationPanel({ explanation }: { explanation: FindingExplanation }) {
+  return (
+    <section className="mt-4 rounded border border-[#d8d8d2] bg-[#fbfbf8] p-4">
+      <h4 className="text-sm font-semibold">Structured explanation</h4>
+      <p className="mt-2 text-sm leading-6 text-[#4a4d49]">{explanation.summary}</p>
+      <p className="mt-2 text-sm leading-6 text-[#4a4d49]">{explanation.riskExplanation}</p>
+
+      <ExplanationList title="Migration considerations" items={explanation.migrationConsiderations} />
+      <ExplanationList title="Suggested tests" items={explanation.suggestedTests} />
+      <ExplanationList title="Limitations" items={explanation.limitations} />
+    </section>
+  );
+}
+
+function ExplanationList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="mt-4">
+      <h5 className="text-sm font-medium text-[#4f5851]">{title}</h5>
+      <ul className="mt-2 flex flex-col gap-2">
+        {items.map((item) => (
+          <li className="rounded bg-white px-3 py-2 text-sm leading-6" key={item}>
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

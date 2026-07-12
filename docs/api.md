@@ -169,6 +169,8 @@ This endpoint lives in `apps/ai-service`.
 
 It receives one structured finding and returns a structured explanation. The current implementation is deterministic placeholder logic. It does not call an LLM yet.
 
+The MVP frontend calls this endpoint when the user selects `Explain finding`.
+
 ### Request
 
 ```json
