@@ -1,6 +1,7 @@
 package com.evidra.cbom;
 
 import java.io.IOException;
+import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,9 +15,16 @@ public class CbomImportService {
     private static final String CYCLONEDX_FORMAT = "CycloneDX";
 
     private final ObjectMapper objectMapper;
+    private final CryptoAssetExtractor cryptoAssetExtractor;
+    private final FindingGenerator findingGenerator;
 
-    public CbomImportService(ObjectMapper objectMapper) {
+    public CbomImportService(
+            ObjectMapper objectMapper,
+            CryptoAssetExtractor cryptoAssetExtractor,
+            FindingGenerator findingGenerator) {
         this.objectMapper = objectMapper;
+        this.cryptoAssetExtractor = cryptoAssetExtractor;
+        this.findingGenerator = findingGenerator;
     }
 
     public CbomImportResponse importCbom(MultipartFile file) throws IOException {
@@ -26,6 +34,8 @@ public class CbomImportService {
 
         JsonNode root = parseJson(file);
         validateCycloneDx(root);
+        List<CryptoAsset> cryptoAssets = cryptoAssetExtractor.extract(root);
+        List<Finding> findings = findingGenerator.generate(cryptoAssets);
 
         return new CbomImportResponse(
                 "accepted",
@@ -33,7 +43,11 @@ public class CbomImportService {
                 requiredText(root, "specVersion"),
                 optionalText(root, "serialNumber"),
                 optionalInt(root, "version"),
-                countArray(root, "components"));
+                countArray(root, "components"),
+                cryptoAssets.size(),
+                cryptoAssets,
+                findings.size(),
+                findings);
     }
 
     private JsonNode parseJson(MultipartFile file) throws IOException {
