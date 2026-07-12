@@ -1,0 +1,17 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "components": [
+    {
+      "type": "library",
+      "name": "crypto-utils",
+      "version": "1.0.0",
+      "properties": [
+        {
+          "name": "evidra.crypto.algorithm",
+          "value": "AES-GCM"
+        }
+      ]
+    }
+  ]
+}

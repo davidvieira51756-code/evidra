@@ -1,0 +1,17 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "components": [
+    {
+      "type": "library",
+      "name": "pqc-provider",
+      "version": "0.1.0",
+      "properties": [
+        {
+          "name": "evidra.crypto.algorithm",
+          "value": "ML-KEM"
+        }
+      ]
+    }
+  ]
+}

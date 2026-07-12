@@ -5,12 +5,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,24 +25,7 @@ class CbomImportControllerTest {
 
     @Test
     void importsValidCycloneDxCbom() throws Exception {
-        MockMultipartFile file = jsonFile("""
-                {
-                  "bomFormat": "CycloneDX",
-                  "specVersion": "1.6",
-                  "serialNumber": "urn:uuid:11111111-1111-1111-1111-111111111111",
-                  "version": 1,
-                  "components": [
-                    {
-                      "type": "library",
-                      "name": "bcprov-jdk18on",
-                      "version": "1.78",
-                      "properties": [
-                        { "name": "evidra.crypto.algorithm", "value": "RSA-OAEP" }
-                      ]
-                    }
-                  ]
-                }
-                """);
+        MockMultipartFile file = cbomFixture("rsa-oaep-cbom.json");
 
         mockMvc.perform(multipart("/api/cboms/import").file(file))
                 .andExpect(status().isOk())
@@ -68,15 +53,7 @@ class CbomImportControllerTest {
 
     @Test
     void importsCycloneDxWithoutCryptoAssets() throws Exception {
-        MockMultipartFile file = jsonFile("""
-                {
-                  "bomFormat": "CycloneDX",
-                  "specVersion": "1.6",
-                  "components": [
-                    { "type": "library", "name": "spring-web", "version": "6.2.8" }
-                  ]
-                }
-                """);
+        MockMultipartFile file = cbomFixture("no-crypto-cbom.json");
 
         mockMvc.perform(multipart("/api/cboms/import").file(file))
                 .andExpect(status().isOk())
@@ -89,22 +66,7 @@ class CbomImportControllerTest {
 
     @Test
     void classifiesPostQuantumAlgorithms() throws Exception {
-        MockMultipartFile file = jsonFile("""
-                {
-                  "bomFormat": "CycloneDX",
-                  "specVersion": "1.6",
-                  "components": [
-                    {
-                      "type": "library",
-                      "name": "pqc-provider",
-                      "version": "0.1.0",
-                      "properties": [
-                        { "name": "evidra.crypto.algorithm", "value": "ML-KEM" }
-                      ]
-                    }
-                  ]
-                }
-                """);
+        MockMultipartFile file = cbomFixture("ml-kem-cbom.json");
 
         mockMvc.perform(multipart("/api/cboms/import").file(file))
                 .andExpect(status().isOk())
@@ -116,22 +78,7 @@ class CbomImportControllerTest {
 
     @Test
     void classifiesOtherAlgorithmsAsReviewRequired() throws Exception {
-        MockMultipartFile file = jsonFile("""
-                {
-                  "bomFormat": "CycloneDX",
-                  "specVersion": "1.6",
-                  "components": [
-                    {
-                      "type": "library",
-                      "name": "crypto-utils",
-                      "version": "1.0.0",
-                      "properties": [
-                        { "name": "evidra.crypto.algorithm", "value": "AES-GCM" }
-                      ]
-                    }
-                  ]
-                }
-                """);
+        MockMultipartFile file = cbomFixture("aes-gcm-cbom.json");
 
         mockMvc.perform(multipart("/api/cboms/import").file(file))
                 .andExpect(status().isOk())
@@ -200,5 +147,14 @@ class CbomImportControllerTest {
                 "cbom.json",
                 "application/json",
                 content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private MockMultipartFile cbomFixture(String fixtureName) throws IOException {
+        ClassPathResource resource = new ClassPathResource("cbom/" + fixtureName);
+        return new MockMultipartFile(
+                "file",
+                fixtureName,
+                "application/json",
+                resource.getContentAsByteArray());
     }
 }
