@@ -189,6 +189,12 @@ curl -F "file=@apps/core-api/src/test/resources/cbom/rsa-oaep-cbom.json" http://
 
 Nesta fase, o endpoint valida o ficheiro, interpreta ativos criptográficos simples e devolve findings determinísticos. Ainda não usa GenAI, RAG, base de dados ou análise contextual.
 
+Para transformar o CBOM numa análise estruturada:
+
+```bash
+curl -F "file=@apps/core-api/src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/analyze
+```
+
 Também é possível gerar um relatório simples em Markdown a partir do mesmo CBOM:
 
 ```bash

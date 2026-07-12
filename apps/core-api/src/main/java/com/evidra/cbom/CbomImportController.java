@@ -16,15 +16,26 @@ public class CbomImportController {
 
     private final CbomImportService cbomImportService;
     private final CbomReportGenerator cbomReportGenerator;
+    private final CbomAnalysisGenerator cbomAnalysisGenerator;
 
-    public CbomImportController(CbomImportService cbomImportService, CbomReportGenerator cbomReportGenerator) {
+    public CbomImportController(
+            CbomImportService cbomImportService,
+            CbomReportGenerator cbomReportGenerator,
+            CbomAnalysisGenerator cbomAnalysisGenerator) {
         this.cbomImportService = cbomImportService;
         this.cbomReportGenerator = cbomReportGenerator;
+        this.cbomAnalysisGenerator = cbomAnalysisGenerator;
     }
 
     @PostMapping(path = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public CbomImportResponse importCbom(@RequestParam("file") MultipartFile file) throws IOException {
         return cbomImportService.importCbom(file);
+    }
+
+    @PostMapping(path = "/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public CbomAnalysisResponse analyze(@RequestParam("file") MultipartFile file) throws IOException {
+        CbomImportResponse importResponse = cbomImportService.importCbom(file);
+        return cbomAnalysisGenerator.generate(importResponse);
     }
 
     @PostMapping(path = "/report", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = "text/markdown")

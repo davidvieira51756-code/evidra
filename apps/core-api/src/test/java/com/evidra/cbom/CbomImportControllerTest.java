@@ -117,6 +117,38 @@ class CbomImportControllerTest {
     }
 
     @Test
+    void analyzesQuantumVulnerableCbom() throws Exception {
+        MockMultipartFile file = cbomFixture("rsa-oaep-cbom.json");
+
+        mockMvc.perform(multipart("/api/cboms/analyze").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("completed")))
+                .andExpect(jsonPath("$.summary.bomFormat", is("CycloneDX")))
+                .andExpect(jsonPath("$.summary.specVersion", is("1.6")))
+                .andExpect(jsonPath("$.summary.componentCount", is(1)))
+                .andExpect(jsonPath("$.summary.cryptoAssetCount", is(1)))
+                .andExpect(jsonPath("$.summary.findingCount", is(1)))
+                .andExpect(jsonPath("$.summary.quantumVulnerableFindingCount", is(1)))
+                .andExpect(jsonPath("$.summary.postQuantumFindingCount", is(0)))
+                .andExpect(jsonPath("$.summary.reviewRequiredFindingCount", is(0)))
+                .andExpect(jsonPath("$.findings[0].status", is("QUANTUM_VULNERABLE")))
+                .andExpect(jsonPath("$.nextActions[0]", is("Review quantum-vulnerable findings and identify affected code paths, data formats, and integrations.")));
+    }
+
+    @Test
+    void analyzesCbomWithoutFindings() throws Exception {
+        MockMultipartFile file = cbomFixture("no-crypto-cbom.json");
+
+        mockMvc.perform(multipart("/api/cboms/analyze").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("completed")))
+                .andExpect(jsonPath("$.summary.findingCount", is(0)))
+                .andExpect(jsonPath("$.summary.cryptoAssetCount", is(0)))
+                .andExpect(jsonPath("$.findings.length()", is(0)))
+                .andExpect(jsonPath("$.nextActions[0]", is("No cryptographic findings were generated from this CBOM. Validate scanner coverage before treating this as complete.")));
+    }
+
+    @Test
     void rejectsEmptyFile() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
