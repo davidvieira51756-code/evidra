@@ -152,7 +152,7 @@ The CBOM import and finding classification pipeline is deterministic.
 
 It does not yet include:
 
-- RAG
+- vector database RAG
 - persistence
 - user accounts
 - contextual source-code analysis
@@ -166,7 +166,7 @@ POST /findings/explain
 
 This endpoint lives in `apps/ai-service`.
 
-It receives one structured finding and returns a structured explanation. When `OPENAI_API_KEY` is configured, the service calls the OpenAI Responses API and asks for a structured JSON explanation. Without an API key, or if the model call fails, it returns the deterministic fallback explanation.
+It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge snippets relevant to the finding, then passes that retrieved context to the model. When `OPENAI_API_KEY` is configured, the service calls the OpenAI Responses API and asks for a structured JSON explanation. Without an API key, or if the model call fails, it returns the deterministic fallback explanation.
 
 The MVP frontend calls the `core-api` proxy endpoint:
 
@@ -184,6 +184,12 @@ $env:OPENAI_MODEL="gpt-4.1"
 ```
 
 `OPENAI_MODEL` is optional. If it is not set, the service uses `gpt-4.1`.
+
+### RAG Scope
+
+The current RAG implementation is intentionally small and local. It retrieves curated snippets from the `ai-service` codebase using explicit keyword matching over the finding status, algorithm, title, and reason.
+
+It does not yet use embeddings, vector search, reranking, external documents, Qdrant, or metadata filtering.
 
 ### Request
 

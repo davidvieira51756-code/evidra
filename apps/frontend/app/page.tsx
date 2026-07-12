@@ -45,6 +45,8 @@ type FindingExplanation = {
 type ApiError = {
   code?: string;
   message?: string;
+  error?: string;
+  detail?: unknown;
 };
 
 const API_BASE_URL =
@@ -286,7 +288,7 @@ function FindingCard({ finding }: { finding: Finding }) {
 
       if (!response.ok) {
         const apiError = (await response.json().catch(() => ({}))) as ApiError;
-        throw new Error(apiError.message ?? "Finding explanation failed.");
+        throw new Error(formatApiError(apiError, "Finding explanation failed."));
       }
 
       setExplanation((await response.json()) as FindingExplanation);
@@ -389,6 +391,24 @@ function EmptyState() {
       </div>
     </section>
   );
+}
+
+function formatApiError(apiError: ApiError, fallback: string) {
+  if (apiError.message) {
+    return apiError.message;
+  }
+
+  if (apiError.error) {
+    return apiError.error;
+  }
+
+  if (apiError.detail) {
+    return typeof apiError.detail === "string"
+      ? apiError.detail
+      : JSON.stringify(apiError.detail);
+  }
+
+  return fallback;
 }
 
 function statusClassName(status: string) {

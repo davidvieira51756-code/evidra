@@ -187,7 +187,7 @@ Exemplo com `curl`, a partir da raiz do repositório:
 curl -F "file=@apps/core-api/src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/import
 ```
 
-Nesta fase, o endpoint valida o ficheiro, interpreta ativos criptográficos simples e devolve findings determinísticos. A explicação de findings pode usar GenAI no `ai-service` quando `OPENAI_API_KEY` está configurada; RAG, base de dados e análise contextual ficam para fases seguintes.
+Nesta fase, o endpoint valida o ficheiro, interpreta ativos criptográficos simples e devolve findings determinísticos. A explicação de findings pode usar GenAI no `ai-service` quando `OPENAI_API_KEY` está configurada. O RAG atual é local e mínimo, baseado em snippets curados; base vetorial, base de dados e análise contextual ficam para fases seguintes.
 
 Para transformar o CBOM numa análise estruturada:
 

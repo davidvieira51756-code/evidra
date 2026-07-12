@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 import sys
@@ -60,6 +61,18 @@ class AiServiceTest(unittest.TestCase):
         self.assertIn(
             "GenAI is disabled because OPENAI_API_KEY is not configured.",
             body["limitations"],
+        )
+        self.assertTrue(
+            any(
+                limitation.startswith("Local RAG context used: pqc-threat-model")
+                for limitation in body["limitations"]
+            )
+        )
+        self.assertTrue(
+            any(
+                item.startswith("Review local RAG context:")
+                for item in body["migrationConsiderations"]
+            )
         )
 
     @patch.dict("os.environ", {"OPENAI_API_KEY": ""})
@@ -127,6 +140,29 @@ class AiServiceTest(unittest.TestCase):
             body["suggestedTests"],
         )
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": ""})
+    def test_explains_finding_when_optional_details_are_missing(self) -> None:
+        response = self.client.post(
+            "/findings/explain",
+            json={
+                "finding": {
+                    "id": "finding-optional",
+                    "title": "RSA usage detected in RSA-2048",
+                    "cryptoAssetName": "RSA-2048",
+                    "status": "QUANTUM_VULNERABLE",
+                    "reason": "The algorithm is explicitly recognized as vulnerable.",
+                    "algorithm": "RSA",
+                    "componentName": "RSA-2048",
+                }
+            },
+        )
+
+        body = response.json()
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("finding-optional", body["findingId"])
+        self.assertIn("classified as quantum-vulnerable", body["riskExplanation"])
+
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key", "OPENAI_MODEL": "test-model"})
     @patch("main.httpx.post")
     def test_explains_finding_with_genai_when_api_key_is_configured(self, httpx_post: Mock) -> None:
@@ -174,6 +210,14 @@ class AiServiceTest(unittest.TestCase):
             "test-model",
             httpx_post.call_args.kwargs["json"]["model"],
         )
+        model_input = json.loads(httpx_post.call_args.kwargs["json"]["input"])
+        self.assertEqual("RSA", model_input["normalizedContext"]["algorithm"])
+        self.assertTrue(
+            any(
+                snippet["id"] == "pqc-threat-model"
+                for snippet in model_input["retrievedKnowledge"]
+            )
+        )
 
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
     @patch("main.httpx.post")
@@ -209,6 +253,16 @@ class AiServiceTest(unittest.TestCase):
         self.assertIn(
             "GenAI explanation failed; deterministic fallback was used.",
             body["limitations"],
+        )
+        self.assertIn(
+            "GenAI response handling failed: RuntimeError.",
+            body["limitations"],
+        )
+        self.assertTrue(
+            any(
+                limitation.startswith("Local RAG context used: pqc-threat-model")
+                for limitation in body["limitations"]
+            )
         )
 
     def test_rejects_invalid_explain_request(self) -> None:
