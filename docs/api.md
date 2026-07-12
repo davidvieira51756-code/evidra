@@ -148,11 +148,10 @@ Known validation failures:
 
 ## Current Boundaries
 
-The current API is deterministic only.
+The CBOM import and finding classification pipeline is deterministic.
 
 It does not yet include:
 
-- GenAI explanations
 - RAG
 - persistence
 - user accounts
@@ -167,7 +166,7 @@ POST /findings/explain
 
 This endpoint lives in `apps/ai-service`.
 
-It receives one structured finding and returns a structured explanation. The current implementation is deterministic placeholder logic. It does not call an LLM yet.
+It receives one structured finding and returns a structured explanation. When `OPENAI_API_KEY` is configured, the service calls the OpenAI Responses API and asks for a structured JSON explanation. Without an API key, or if the model call fails, it returns the deterministic fallback explanation.
 
 The MVP frontend calls the `core-api` proxy endpoint:
 
@@ -176,6 +175,15 @@ POST /api/findings/explain
 ```
 
 The `core-api` then forwards the structured finding to the `ai-service`.
+
+### GenAI Configuration
+
+```powershell
+$env:OPENAI_API_KEY="your-api-key"
+$env:OPENAI_MODEL="gpt-4.1"
+```
+
+`OPENAI_MODEL` is optional. If it is not set, the service uses `gpt-4.1`.
 
 ### Request
 
@@ -213,7 +221,7 @@ The `core-api` then forwards the structured finding to the `ai-service`.
   ],
   "limitations": [
     "This explanation is generated from structured finding data only.",
-    "It is deterministic placeholder output and does not use GenAI or RAG yet."
+    "It does not inspect source code, historical data, certificates, keystores, or runtime configuration."
   ]
 }
 ```

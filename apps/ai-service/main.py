@@ -1,3 +1,7 @@
+import json
+import os
+
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -55,7 +59,131 @@ def explain_finding(request: ExplainFindingRequest) -> ExplainFindingResponse:
     finding = request.finding
     algorithm = finding.algorithm or "unknown algorithm"
     component = finding.componentName or finding.cryptoAssetName
+    genai_response = build_genai_explanation(finding, algorithm, component)
 
+    if genai_response is not None:
+        return genai_response
+
+    return build_deterministic_explanation(
+        finding=finding,
+        algorithm=algorithm,
+        component=component,
+        extra_limitations=["GenAI is disabled because OPENAI_API_KEY is not configured."],
+    )
+
+
+def build_genai_explanation(
+    finding: FindingInput,
+    algorithm: str,
+    component: str,
+) -> ExplainFindingResponse | None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        response = httpx.post(
+            "https://api.openai.com/v1/responses",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json=build_openai_payload(finding, algorithm, component),
+            timeout=30,
+        )
+        response.raise_for_status()
+        return parse_openai_response(response.json(), finding.id)
+    except Exception:
+        return build_deterministic_explanation(
+            finding=finding,
+            algorithm=algorithm,
+            component=component,
+            extra_limitations=["GenAI explanation failed; deterministic fallback was used."],
+        )
+
+
+def build_openai_payload(finding: FindingInput, algorithm: str, component: str) -> dict:
+    return {
+        "model": os.getenv("OPENAI_MODEL", "gpt-4.1"),
+        "instructions": (
+            "You are Evidra's cryptography migration analyst. Explain a single CBOM finding. "
+            "Use only the structured finding data provided by the application. Do not claim to "
+            "have inspected source code, certificates, keystores, runtime configuration, or logs. "
+            "Keep the response practical, concise, and conservative."
+        ),
+        "input": json.dumps(
+            {
+                "finding": finding.model_dump(),
+                "normalizedContext": {
+                    "algorithm": algorithm,
+                    "component": component,
+                },
+            }
+        ),
+        "temperature": 0.2,
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "evidra_finding_explanation",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "findingId",
+                        "summary",
+                        "riskExplanation",
+                        "migrationConsiderations",
+                        "suggestedTests",
+                        "limitations",
+                    ],
+                    "properties": {
+                        "findingId": {"type": "string"},
+                        "summary": {"type": "string"},
+                        "riskExplanation": {"type": "string"},
+                        "migrationConsiderations": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "minItems": 1,
+                            "maxItems": 5,
+                        },
+                        "suggestedTests": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "minItems": 1,
+                            "maxItems": 5,
+                        },
+                        "limitations": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "minItems": 1,
+                            "maxItems": 5,
+                        },
+                    },
+                },
+            }
+        },
+    }
+
+
+def parse_openai_response(response_body: dict, expected_finding_id: str) -> ExplainFindingResponse:
+    output_text = response_body.get("output_text")
+
+    if output_text is None:
+        output = response_body["output"]
+        output_text = output[0]["content"][0]["text"]
+
+    parsed = json.loads(output_text)
+    parsed["findingId"] = expected_finding_id
+    return ExplainFindingResponse.model_validate(parsed)
+
+
+def build_deterministic_explanation(
+    finding: FindingInput,
+    algorithm: str,
+    component: str,
+    extra_limitations: list[str],
+) -> ExplainFindingResponse:
     return ExplainFindingResponse(
         findingId=finding.id,
         summary=build_summary(finding, algorithm, component),
@@ -65,7 +193,7 @@ def explain_finding(request: ExplainFindingRequest) -> ExplainFindingResponse:
         limitations=[
             "This explanation is generated from structured finding data only.",
             "It does not inspect source code, historical data, certificates, keystores, or runtime configuration.",
-            "It is deterministic placeholder output and does not use GenAI or RAG yet.",
+            *extra_limitations,
         ],
     )
 
