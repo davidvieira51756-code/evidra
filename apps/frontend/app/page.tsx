@@ -49,8 +49,6 @@ type ApiError = {
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_CORE_API_URL ?? "http://localhost:8080";
-const AI_SERVICE_URL =
-  process.env.NEXT_PUBLIC_AI_SERVICE_URL ?? "http://localhost:8000";
 
 const statusLabels: Record<string, string> = {
   QUANTUM_VULNERABLE: "Quantum vulnerable",
@@ -278,7 +276,7 @@ function FindingCard({ finding }: { finding: Finding }) {
     setExplanationError(null);
 
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/findings/explain`, {
+      const response = await fetch(`${API_BASE_URL}/api/findings/explain`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
