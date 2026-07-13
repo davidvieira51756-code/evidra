@@ -1,227 +1,141 @@
 # Evidra
 
-Evidra vem de **EVIDence + Record + Audit**.
+Evidra means **Evidence + Record + Audit**.
 
-O Evidra é um copiloto developer-first para migração e vigilância criptográfica pós-quântica. O objetivo é ajudar equipas Java e Spring Boot a transformar um inventário criptográfico, como um CBOM CycloneDX gerado por ferramentas existentes, num plano de migração compreensível, fundamentado, testável e pronto para revisão humana.
+Evidra is a developer-first MVP for turning CycloneDX CBOM files into structured cryptography findings, explanations, and simple migration guidance for post-quantum readiness.
 
-A pergunta central do produto é:
+The project does not replace crypto scanners and does not treat GenAI as the source of truth. Deterministic parsing and classification happen first; GenAI is optional and only explains already-derived findings.
 
-> Como pode esta equipa migrar esta utilização criptográfica sem quebrar o projeto?
+## Current Status
 
-O Evidra não pretende substituir scanners criptográficos nem tratar o LLM como fonte de verdade. O scanner encontra, o RAG fundamenta, o GenAI explica e propõe, a compilação e os testes verificam, e o programador aprova.
+The current MVP can:
 
-## Visão do Produto
+- import and validate CycloneDX JSON CBOM files
+- extract simple cryptographic assets from CBOM metadata/properties
+- classify algorithms with explicit rules
+- generate deterministic findings
+- generate a structured CBOM analysis
+- export a Markdown report
+- explain individual findings through an optional FastAPI AI service
+- use local RAG snippets to add context to explanations
+- fall back to deterministic explanations when GenAI is unavailable or quota-limited
 
-O Evidra foca-se na interseção entre:
+Current algorithm classification:
 
-- Java e Spring Boot
-- GenAI e RAG
-- criptografia pós-quântica
-- CBOMs e auditoria técnica
-- CI/CD e DevSecOps
-- migrações seguras e reversíveis
+- `RSA`, `ECDSA`, `ECDH`, `DSA`, `DH` -> `QUANTUM_VULNERABLE`
+- `ML-KEM`, `ML-DSA`, `SLH-DSA` -> `POST_QUANTUM`
+- anything else -> `REVIEW_REQUIRED`
 
-O problema não é apenas trocar RSA ou ECC por ML-KEM, ML-DSA ou SLH-DSA. Uma migração real pode afetar dados históricos, formatos cifrados, certificados, autenticação, assinaturas digitais, integrações externas, recuperação de dados, gestão de chaves, desempenho e compatibilidade retroativa.
+`REVIEW_REQUIRED` is intentionally conservative. AES, SHA, and HMAC do not have special categories yet.
 
-## Público Inicial
-
-O produto é pensado primeiro para:
-
-- programadores
-- equipas Java/Spring Boot
-- AppSec
-- DevSecOps
-- responsáveis técnicos por migrações criptográficas
-
-O posicionamento é developer-first: ferramentas tradicionais mostram que criptografia existe; o Evidra deve ajudar o programador a entender o impacto e a migrar com segurança.
-
-## Fluxo Principal
-
-```text
-CBOMkit analisa o projeto
-        |
-        v
-gera um CBOM CycloneDX
-        |
-        v
-Evidra importa e interpreta
-        |
-        v
-RAG recupera documentação fiável
-        |
-        v
-GenAI explica riscos e propõe plano
-        |
-        v
-compilação e testes verificam
-        |
-        v
-programador aprova
-```
-
-## MVP
-
-O MVP deve manter-se pequeno e progressivo. Nesta fase, o Evidra deve permitir:
-
-1. Importar um CBOM CycloneDX de um projeto Java.
-2. Interpretar ativos criptográficos.
-3. Apresentar findings.
-4. Selecionar um finding.
-5. Recuperar documentação relevante.
-6. Gerar uma explicação estruturada.
-7. Gerar um plano de migração.
-8. Sugerir testes.
-9. Exportar um relatório simples.
-
-Fora do MVP inicial:
-
-- edição automática de código
-- criação automática de pull requests
-- hash-chain
-- Vault
-- arquitetura distribuída pesada
-- dashboard empresarial complexo
-- suporte para várias linguagens
-- substituição do CBOMkit
-
-## Roadmap
-
-### Versão 1
-
-CBOM -> finding -> contexto -> RAG -> explicação -> plano.
-
-### Versão 2
-
-Plano -> patch -> diff -> compilação -> testes -> revisão humana.
-
-### Versão 3
-
-GitHub App -> análise por pull request -> CBOM diff -> políticas -> merge check.
-
-### Futuro
-
-- OpenRewrite
-- pull requests automáticos
-- benchmarks
-- análise de certificados, keystores e TLS
-- suporte Gradle
-- políticas empresariais
-- evidência assinada
-- GitLab e Azure DevOps
-- suporte para Python, .NET e JavaScript
-
-## Princípios de Desenvolvimento
-
-1. Implementar uma funcionalidade de cada vez.
-2. Não reinventar o scanner.
-3. Separar operações determinísticas de GenAI.
-4. Não confiar no LLM como fonte de verdade.
-5. Usar structured outputs sempre que fizer sentido.
-6. Fundamentar respostas com RAG.
-7. Validar alterações com compilação e testes.
-8. Manter revisão humana.
-9. Não adicionar tecnologias sem necessidade.
-10. Pensar desde cedo na integração futura com CI/CD.
-
-## Arquitetura Atual
-
-O repositório está organizado como monorepo:
+## Architecture
 
 ```text
 evidra/
 |-- apps/
-|   |-- frontend/
-|   |-- core-api/
-|   `-- ai-service/
+|   |-- frontend/    # Next.js UI
+|   |-- core-api/    # Java 21 Spring Boot API
+|   `-- ai-service/  # Python FastAPI GenAI/RAG service
+|-- docs/
 |-- docker-compose.yml
-|-- .gitignore
 `-- README.md
 ```
 
-### Apps
+## Services
 
-- `apps/frontend`: interface web em Next.js.
-- `apps/core-api`: API principal em Java 21 e Spring Boot.
-- `apps/ai-service`: serviço GenAI/RAG em Python e FastAPI.
+- `apps/frontend`: web UI for importing CBOM files, viewing findings, explaining findings, and exporting reports.
+- `apps/core-api`: main API. Validates CBOM files, extracts crypto assets, classifies findings, generates analysis/report output, and proxies finding explanation requests to the AI service.
+- `apps/ai-service`: optional AI service. Uses local RAG snippets and, when configured, OpenAI to produce structured finding explanations.
 
-## Stack
+## Local Setup
 
-- Frontend: Next.js, TypeScript e Tailwind CSS.
-- Backend principal: Java 21, Spring Boot, Maven e Spring Web.
-- Serviço GenAI: Python 3.12, FastAPI, Pydantic, HTTPX e pytest.
-- Scanning e formato: CBOMkit, sonar-cryptography, CycloneDX e CycloneDX Core Java.
-- RAG: inicialmente simples; depois Qdrant, embeddings, metadata filtering, hybrid retrieval e reranking.
-- PQC em Java: Bouncy Castle com ML-KEM, ML-DSA e SLH-DSA.
-- Refatoração futura: OpenRewrite.
-- Infraestrutura: Docker, Docker Compose, GitHub Actions e AWS mais tarde.
-- Observabilidade futura: Langfuse apenas quando necessário.
+### AI service
 
-## Requisitos
+Create `apps/ai-service/.env` from `.env.example`:
 
-- Docker
-- Docker Compose
-
-## Arranque Local
-
-```bash
-docker compose up --build
+```env
+OPENAI_API_KEY=your-api-key-here
+OPENAI_MODEL=gpt-4.1
 ```
 
-## URLs Locais
+Then run:
+
+```powershell
+cd apps/ai-service
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+If `OPENAI_API_KEY` is missing, invalid, or quota-limited, the service still returns a deterministic fallback explanation using local RAG context.
+
+### Core API
+
+```powershell
+cd apps/core-api
+mvn spring-boot:run
+```
+
+### Frontend
+
+```powershell
+cd apps/frontend
+npm.cmd run dev
+```
+
+Local URLs:
 
 - Frontend: http://localhost:3000
-- Core API: http://localhost:8080/health
-- AI Service: http://localhost:8000/health
+- Core API health: http://localhost:8080/health
+- AI service health: http://localhost:8000/health
 
-## Importar um CBOM
+## API Examples
 
-O `core-api` expõe um endpoint inicial para importar e validar um CBOM CycloneDX:
+Run these from `apps/core-api` or adjust the file path.
 
-```http
-POST /api/cboms/import
+Import and validate a CBOM:
+
+```powershell
+curl.exe -F "file=@src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/import
 ```
 
-Exemplo com `curl`, a partir da raiz do repositório:
+Analyze a CBOM:
 
-```bash
-curl -F "file=@apps/core-api/src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/import
+```powershell
+curl.exe -F "file=@src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/analyze
 ```
 
-Nesta fase, o endpoint valida o ficheiro, interpreta ativos criptográficos simples e devolve findings determinísticos. A explicação de findings pode usar GenAI no `ai-service` quando `OPENAI_API_KEY` está configurada. O RAG atual é local e mínimo, baseado em snippets curados; base vetorial, base de dados e análise contextual ficam para fases seguintes.
+Export a Markdown report:
 
-Para transformar o CBOM numa análise estruturada:
-
-```bash
-curl -F "file=@apps/core-api/src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/analyze
+```powershell
+curl.exe -F "file=@src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/report
 ```
 
-Também é possível gerar um relatório simples em Markdown a partir do mesmo CBOM:
+The MVP API contract is documented in [docs/api.md](docs/api.md).
 
-```bash
-curl -F "file=@apps/core-api/src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:8080/api/cboms/report
-```
+## RAG Scope
 
-O contrato completo da API MVP esta documentado em [docs/api.md](docs/api.md).
+RAG is currently local and minimal. The AI service contains curated knowledge snippets in code and retrieves relevant snippets based on the finding status, algorithm, title, and reason.
 
-## Laboratório Java Futuro
+There is no vector database, embedding pipeline, persistence layer, or contextual source-code analysis yet.
 
-Em paralelo ao produto, o projeto deve incluir um pequeno laboratório Java para estudar uma migração real:
+Before expanding RAG, the project should define a clear data boundary: what can leave Evidra for GenAI and what must always stay local.
 
-```text
-RSA-OAEP -> ML-KEM -> modo híbrido
-```
+## Not Implemented Yet
 
-Esse laboratório deve explorar:
+- PostgreSQL persistence
+- user accounts
+- full CBOM history
+- vector database RAG
+- source-code analysis
+- automatic code changes
+- automatic pull requests
+- CI/CD policy gates
+- enterprise dashboard
 
-- AES-256-GCM
-- compatibilidade retroativa
-- versionamento de formato cifrado
-- dados históricos
-- diferenças de tamanho
-- desempenho
-- chaves erradas
-- deteção de alterações
+## Development Principles
 
-## Frase de Produto
-
-Evidra transforma um CBOM numa migração pós-quântica compreensível, testável e pronta para revisão, e impede que nova dívida criptográfica volte a entrar no projeto.
+- Keep deterministic analysis separate from GenAI.
+- Do not send complete CBOM files to GenAI.
+- Keep GenAI explanations grounded in structured findings and retrieved context.
+- Prefer explicit algorithm classification over substring guessing.
+- Add persistence, richer RAG, and automation only after the MVP data boundary is clear.

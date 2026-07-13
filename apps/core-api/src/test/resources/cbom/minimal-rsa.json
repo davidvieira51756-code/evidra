@@ -1,0 +1,35 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.7",
+  "serialNumber": "urn:uuid:e8c355aa-2142-4084-a8c7-6d42c8610ba2",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-12T12:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "teste-minimo",
+      "version": "1.0"
+    }
+  },
+  "components": [
+    {
+      "name": "RSA-2048",
+      "type": "cryptographic-asset",
+      "bom-ref": "crypto/algorithm/rsa-2048@1.2.840.113549.1.1.11",
+      "cryptoProperties": {
+        "assetType": "algorithm",
+        "algorithmProperties": {
+          "algorithmFamily": "RSASSA-PKCS1",
+          "primitive": "signature",
+          "parameterSetIdentifier": "2048",
+          "executionEnvironment": "software-plain-ram",
+          "implementationPlatform": "x86_64",
+          "certificationLevel": ["none"],
+          "cryptoFunctions": ["sign", "verify"],
+          "nistQuantumSecurityLevel": 0
+        },
+        "oid": "1.2.840.113549.1.1.11"
+      }
+    }
+  ]
+}
