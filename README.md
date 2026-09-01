@@ -45,7 +45,7 @@ evidra/
 
 - `apps/frontend`: web UI for importing CBOM files, viewing findings, explaining findings, and exporting reports.
 - `apps/core-api`: main API. Validates CBOM files, extracts crypto assets, classifies findings, generates analysis/report output, and proxies finding explanation requests to the AI service.
-- `apps/ai-service`: optional AI service. Uses local RAG snippets and, when configured, OpenAI to produce structured finding explanations.
+- `apps/ai-service`: optional AI service. Uses local RAG snippets and, when configured, Ollama to produce structured finding explanations.
 
 ## Local Setup
 
@@ -54,8 +54,14 @@ evidra/
 Create `apps/ai-service/.env` from `.env.example`:
 
 ```env
-OPENAI_API_KEY=your-api-key-here
-OPENAI_MODEL=gpt-4.1
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1:8b
+```
+
+Install Ollama from https://ollama.com/download, start it, and pull the model you want to use:
+
+```powershell
+ollama pull llama3.1:8b
 ```
 
 Then run:
@@ -66,7 +72,14 @@ cd apps/ai-service
 python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-If `OPENAI_API_KEY` is missing, invalid, or quota-limited, the service still returns a deterministic fallback explanation using local RAG context.
+If `OLLAMA_MODEL` is missing, Ollama is unavailable, or the model call fails, the service still returns a deterministic fallback explanation using local RAG context.
+
+When running through Docker Compose, keep Ollama running on the host and set `OLLAMA_MODEL` in your shell or a root `.env` file:
+
+```powershell
+$env:OLLAMA_MODEL="llama3.1:8b"
+docker compose up --build
+```
 
 ### Core API
 

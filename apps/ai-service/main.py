@@ -108,42 +108,39 @@ def explain_finding(request: ExplainFindingRequest) -> ExplainFindingResponse:
     algorithm = finding.algorithm or "unknown algorithm"
     component = finding.componentName or finding.cryptoAssetName
     retrieved_context = retrieve_context(finding, algorithm)
-    genai_response = build_genai_explanation(finding, algorithm, component, retrieved_context)
+    llm_response = build_llm_explanation(finding, algorithm, component, retrieved_context)
 
-    if genai_response is not None:
-        return genai_response
+    if llm_response is not None:
+        return llm_response
 
     return build_deterministic_explanation(
         finding=finding,
         algorithm=algorithm,
         component=component,
         retrieved_context=retrieved_context,
-        extra_limitations=["GenAI is disabled because OPENAI_API_KEY is not configured."],
+        extra_limitations=["GenAI is disabled because OLLAMA_MODEL is not configured."],
     )
 
 
-def build_genai_explanation(
+def build_llm_explanation(
     finding: FindingInput,
     algorithm: str,
     component: str,
     retrieved_context: list[dict],
 ) -> ExplainFindingResponse | None:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    model = os.getenv("OLLAMA_MODEL")
+    if not model:
         return None
 
     try:
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
         response = httpx.post(
-            "https://api.openai.com/v1/responses",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=build_openai_payload(finding, algorithm, component, retrieved_context),
+            f"{base_url}/api/generate",
+            json=build_ollama_payload(model, finding, algorithm, component, retrieved_context),
             timeout=30,
         )
         response.raise_for_status()
-        return parse_openai_response(response.json(), finding.id)
+        return parse_ollama_response(response.json(), finding.id)
     except Exception as exception:
         return build_deterministic_explanation(
             finding=finding,
@@ -152,91 +149,63 @@ def build_genai_explanation(
             retrieved_context=retrieved_context,
             extra_limitations=[
                 "GenAI explanation failed; deterministic fallback was used.",
-                describe_genai_failure(exception),
+                describe_llm_failure(exception),
             ],
         )
 
 
-def build_openai_payload(
+def build_ollama_payload(
+    model: str,
     finding: FindingInput,
     algorithm: str,
     component: str,
     retrieved_context: list[dict],
 ) -> dict:
     return {
-        "model": os.getenv("OPENAI_MODEL", "gpt-4.1"),
-        "instructions": (
-            "You are Evidra's cryptography migration analyst. Explain a single CBOM finding. "
+        "model": model,
+        "stream": False,
+        "format": "json",
+        "prompt": (
+            "You are Evidra's cryptography migration analyst. Explain a single CBOM finding.\n"
             "Use only the structured finding data and retrieved knowledge snippets provided by the "
             "application. Do not claim to have inspected source code, certificates, keystores, runtime "
             "configuration, or logs. Keep the response practical, concise, and conservative. When "
-            "retrieved snippets are insufficient, say so in limitations."
-        ),
-        "input": json.dumps(
-            {
-                "finding": finding.model_dump(),
-                "normalizedContext": {
-                    "algorithm": algorithm,
-                    "component": component,
-                },
-                "retrievedKnowledge": retrieved_context,
-            }
-        ),
-        "text": {
-            "format": {
-                "type": "json_schema",
-                "name": "evidra_finding_explanation",
-                "strict": True,
-                "schema": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": [
-                        "findingId",
-                        "summary",
-                        "riskExplanation",
-                        "migrationConsiderations",
-                        "suggestedTests",
-                        "limitations",
-                    ],
-                    "properties": {
-                        "findingId": {"type": "string"},
-                        "summary": {"type": "string"},
-                        "riskExplanation": {"type": "string"},
-                        "migrationConsiderations": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "minItems": 1,
-                            "maxItems": 5,
-                        },
-                        "suggestedTests": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "minItems": 1,
-                            "maxItems": 5,
-                        },
-                        "limitations": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "minItems": 1,
-                            "maxItems": 5,
-                        },
+            "retrieved snippets are insufficient, say so in limitations.\n\n"
+            "Return only valid JSON with this exact shape:\n"
+            "{\n"
+            '  "findingId": "string",\n'
+            '  "summary": "string",\n'
+            '  "riskExplanation": "string",\n'
+            '  "migrationConsiderations": ["string"],\n'
+            '  "suggestedTests": ["string"],\n'
+            '  "limitations": ["string"]\n'
+            "}\n\n"
+            "Input:\n"
+            + json.dumps(
+                {
+                    "finding": finding.model_dump(),
+                    "normalizedContext": {
+                        "algorithm": algorithm,
+                        "component": component,
                     },
+                    "retrievedKnowledge": retrieved_context,
                 },
-            }
-        },
+                ensure_ascii=True,
+            )
+        ),
     }
 
 
-def describe_genai_failure(exception: Exception) -> str:
+def describe_llm_failure(exception: Exception) -> str:
     if isinstance(exception, httpx.HTTPStatusError):
         response_text = exception.response.text.replace("\n", " ")
         return (
-            f"OpenAI API returned HTTP {exception.response.status_code}: "
+            f"Ollama API returned HTTP {exception.response.status_code}: "
             f"{truncate(response_text, 240)}"
         )
 
     if isinstance(exception, httpx.RequestError):
-        return f"OpenAI API request failed before receiving a response: {exception.__class__.__name__}."
+        return f"Ollama API request failed before receiving a response: {exception.__class__.__name__}."
 
     return f"GenAI response handling failed: {exception.__class__.__name__}."
 
@@ -274,14 +243,8 @@ def retrieve_context(finding: FindingInput, algorithm: str, limit: int = 3) -> l
     ]
 
 
-def parse_openai_response(response_body: dict, expected_finding_id: str) -> ExplainFindingResponse:
-    output_text = response_body.get("output_text")
-
-    if output_text is None:
-        output = response_body["output"]
-        output_text = output[0]["content"][0]["text"]
-
-    parsed = json.loads(output_text)
+def parse_ollama_response(response_body: dict, expected_finding_id: str) -> ExplainFindingResponse:
+    parsed = json.loads(response_body["response"])
     parsed["findingId"] = expected_finding_id
     return ExplainFindingResponse.model_validate(parsed)
 

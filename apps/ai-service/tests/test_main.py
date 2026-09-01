@@ -21,7 +21,7 @@ class AiServiceTest(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"status": "ok", "service": "ai-service"}, response.json())
 
-    @patch.dict("os.environ", {"OPENAI_API_KEY": ""})
+    @patch.dict("os.environ", {"OLLAMA_MODEL": ""})
     def test_explains_quantum_vulnerable_finding(self) -> None:
         response = self.client.post(
             "/findings/explain",
@@ -59,7 +59,7 @@ class AiServiceTest(unittest.TestCase):
             body["suggestedTests"],
         )
         self.assertIn(
-            "GenAI is disabled because OPENAI_API_KEY is not configured.",
+            "GenAI is disabled because OLLAMA_MODEL is not configured.",
             body["limitations"],
         )
         self.assertTrue(
@@ -75,7 +75,7 @@ class AiServiceTest(unittest.TestCase):
             )
         )
 
-    @patch.dict("os.environ", {"OPENAI_API_KEY": ""})
+    @patch.dict("os.environ", {"OLLAMA_MODEL": ""})
     def test_explains_post_quantum_finding(self) -> None:
         response = self.client.post(
             "/findings/explain",
@@ -109,7 +109,7 @@ class AiServiceTest(unittest.TestCase):
             body["suggestedTests"],
         )
 
-    @patch.dict("os.environ", {"OPENAI_API_KEY": ""})
+    @patch.dict("os.environ", {"OLLAMA_MODEL": ""})
     def test_explains_review_required_finding(self) -> None:
         response = self.client.post(
             "/findings/explain",
@@ -140,7 +140,7 @@ class AiServiceTest(unittest.TestCase):
             body["suggestedTests"],
         )
 
-    @patch.dict("os.environ", {"OPENAI_API_KEY": ""})
+    @patch.dict("os.environ", {"OLLAMA_MODEL": ""})
     def test_explains_finding_when_optional_details_are_missing(self) -> None:
         response = self.client.post(
             "/findings/explain",
@@ -163,12 +163,21 @@ class AiServiceTest(unittest.TestCase):
         self.assertEqual("finding-optional", body["findingId"])
         self.assertIn("classified as quantum-vulnerable", body["riskExplanation"])
 
-    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key", "OPENAI_MODEL": "test-model"})
+    @patch.dict(
+        "os.environ",
+        {
+            "OLLAMA_BASE_URL": "http://ollama.test:11434",
+            "OLLAMA_MODEL": "test-model",
+        },
+    )
     @patch("main.httpx.post")
-    def test_explains_finding_with_genai_when_api_key_is_configured(self, httpx_post: Mock) -> None:
+    def test_explains_finding_with_genai_when_ollama_model_is_configured(
+        self,
+        httpx_post: Mock,
+    ) -> None:
         httpx_response = Mock()
         httpx_response.json.return_value = {
-            "output_text": (
+            "response": (
                 '{"findingId":"finding-ignored-by-service",'
                 '"summary":"GenAI summary.",'
                 '"riskExplanation":"GenAI risk explanation.",'
@@ -206,11 +215,15 @@ class AiServiceTest(unittest.TestCase):
         self.assertIn("GenAI migration step.", body["migrationConsiderations"])
         self.assertIn("GenAI test.", body["suggestedTests"])
         httpx_post.assert_called_once()
+        self.assertEqual("http://ollama.test:11434/api/generate", httpx_post.call_args.args[0])
         self.assertEqual(
             "test-model",
             httpx_post.call_args.kwargs["json"]["model"],
         )
-        model_input = json.loads(httpx_post.call_args.kwargs["json"]["input"])
+        self.assertFalse(httpx_post.call_args.kwargs["json"]["stream"])
+        self.assertEqual("json", httpx_post.call_args.kwargs["json"]["format"])
+        prompt = httpx_post.call_args.kwargs["json"]["prompt"]
+        model_input = json.loads(prompt.split("Input:\n", 1)[1])
         self.assertEqual("RSA", model_input["normalizedContext"]["algorithm"])
         self.assertTrue(
             any(
@@ -219,7 +232,7 @@ class AiServiceTest(unittest.TestCase):
             )
         )
 
-    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
+    @patch.dict("os.environ", {"OLLAMA_MODEL": "test-model"})
     @patch("main.httpx.post")
     def test_falls_back_to_deterministic_explanation_when_genai_fails(
         self,

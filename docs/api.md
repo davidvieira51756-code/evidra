@@ -166,7 +166,7 @@ POST /findings/explain
 
 This endpoint lives in `apps/ai-service`.
 
-It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge snippets relevant to the finding, then passes that retrieved context to the model. When `OPENAI_API_KEY` is configured, the service calls the OpenAI Responses API and asks for a structured JSON explanation. Without an API key, or if the model call fails, it returns the deterministic fallback explanation.
+It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge snippets relevant to the finding, then passes that retrieved context to the model. When `OLLAMA_MODEL` is configured, the service calls a local Ollama `/api/generate` endpoint and asks for a structured JSON explanation. Without a configured model, or if the model call fails, it returns the deterministic fallback explanation.
 
 The MVP frontend calls the `core-api` proxy endpoint:
 
@@ -179,11 +179,19 @@ The `core-api` then forwards the structured finding to the `ai-service`.
 ### GenAI Configuration
 
 ```powershell
-$env:OPENAI_API_KEY="your-api-key"
-$env:OPENAI_MODEL="gpt-4.1"
+$env:OLLAMA_BASE_URL="http://localhost:11434"
+$env:OLLAMA_MODEL="llama3.1:8b"
 ```
 
-`OPENAI_MODEL` is optional. If it is not set, the service uses `gpt-4.1`.
+`OLLAMA_BASE_URL` is optional. If it is not set, the AI service uses `http://localhost:11434`.
+
+`OLLAMA_MODEL` is required for GenAI explanations. If it is not set, the service uses the deterministic fallback.
+
+Install Ollama from https://ollama.com/download and pull the configured model before starting the service:
+
+```powershell
+ollama pull llama3.1:8b
+```
 
 ### RAG Scope
 
