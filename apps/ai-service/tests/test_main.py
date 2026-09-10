@@ -1,288 +1,310 @@
 import json
-import unittest
-from pathlib import Path
-import sys
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
+import pytest
 from fastapi.testclient import TestClient
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from main import app
+from main import FindingInput, app, build_deterministic_explanation, retrieve_context
 
 
-class AiServiceTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.client = TestClient(app)
+@pytest.fixture
+def client() -> TestClient:
+    return TestClient(app)
 
-    def test_health_returns_ok(self) -> None:
-        response = self.client.get("/health")
 
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"status": "ok", "service": "ai-service"}, response.json())
-
-    @patch.dict("os.environ", {"OLLAMA_MODEL": ""})
-    def test_explains_quantum_vulnerable_finding(self) -> None:
-        response = self.client.post(
-            "/findings/explain",
-            json={
-                "finding": {
-                    "id": "finding-1",
-                    "title": "RSA-OAEP usage detected in bcprov-jdk18on",
-                    "cryptoAssetName": "bcprov-jdk18on",
-                    "status": "QUANTUM_VULNERABLE",
-                    "reason": "The algorithm is explicitly recognized as vulnerable.",
-                    "algorithm": "RSA-OAEP",
-                    "componentName": "bcprov-jdk18on",
-                    "componentVersion": "1.78",
-                    "recommendation": "Assess migration impact.",
-                    "evidence": ["property:evidra.crypto.algorithm=RSA-OAEP"],
-                }
-            },
-        )
-
-        body = response.json()
-
-        self.assertEqual(200, response.status_code)
-        self.assertEqual("finding-1", body["findingId"])
-        self.assertEqual(
-            "RSA-OAEP was detected in bcprov-jdk18on with status QUANTUM_VULNERABLE.",
-            body["summary"],
-        )
-        self.assertIn("classified as quantum-vulnerable", body["riskExplanation"])
-        self.assertIn(
-            "Map the affected code paths and external integrations.",
-            body["migrationConsiderations"],
-        )
-        self.assertIn(
-            "Verify old data remains readable or verifiable during migration.",
-            body["suggestedTests"],
-        )
-        self.assertIn(
-            "GenAI is disabled because OLLAMA_MODEL is not configured.",
-            body["limitations"],
-        )
-        self.assertTrue(
-            any(
-                limitation.startswith("Local RAG context used: pqc-threat-model")
-                for limitation in body["limitations"]
-            )
-        )
-        self.assertTrue(
-            any(
-                item.startswith("Review local RAG context:")
-                for item in body["migrationConsiderations"]
-            )
-        )
-
-    @patch.dict("os.environ", {"OLLAMA_MODEL": ""})
-    def test_explains_post_quantum_finding(self) -> None:
-        response = self.client.post(
-            "/findings/explain",
-            json={
-                "finding": {
-                    "id": "finding-2",
-                    "title": "ML-KEM usage detected in pqc-provider",
-                    "cryptoAssetName": "pqc-provider",
-                    "status": "POST_QUANTUM",
-                    "reason": "The algorithm is explicitly recognized as post-quantum.",
-                    "algorithm": "ML-KEM",
-                    "componentName": "pqc-provider",
-                    "componentVersion": "0.1.0",
-                    "recommendation": "Validate interoperability.",
-                    "evidence": ["property:evidra.crypto.algorithm=ML-KEM"],
-                }
-            },
-        )
-
-        body = response.json()
-
-        self.assertEqual(200, response.status_code)
-        self.assertEqual("finding-2", body["findingId"])
-        self.assertIn("classified as post-quantum", body["riskExplanation"])
-        self.assertIn(
-            "Validate provider support and algorithm parameters.",
-            body["migrationConsiderations"],
-        )
-        self.assertIn(
-            "Test interoperability with configured providers.",
-            body["suggestedTests"],
-        )
-
-    @patch.dict("os.environ", {"OLLAMA_MODEL": ""})
-    def test_explains_review_required_finding(self) -> None:
-        response = self.client.post(
-            "/findings/explain",
-            json={
-                "finding": {
-                    "id": "finding-3",
-                    "title": "AES-GCM usage detected in crypto-utils",
-                    "cryptoAssetName": "crypto-utils",
-                    "status": "REVIEW_REQUIRED",
-                    "reason": "The algorithm is not explicitly classified yet.",
-                    "algorithm": "AES-GCM",
-                    "componentName": "crypto-utils",
-                    "componentVersion": "1.0.0",
-                    "recommendation": "Review manually.",
-                    "evidence": ["property:evidra.crypto.algorithm=AES-GCM"],
-                }
-            },
-        )
-
-        body = response.json()
-
-        self.assertEqual(200, response.status_code)
-        self.assertEqual("finding-3", body["findingId"])
-        self.assertIn("not explicitly classified", body["riskExplanation"])
-        self.assertIn("Confirm what the algorithm is used for.", body["migrationConsiderations"])
-        self.assertIn(
-            "Add characterization tests before changing the implementation.",
-            body["suggestedTests"],
-        )
-
-    @patch.dict("os.environ", {"OLLAMA_MODEL": ""})
-    def test_explains_finding_when_optional_details_are_missing(self) -> None:
-        response = self.client.post(
-            "/findings/explain",
-            json={
-                "finding": {
-                    "id": "finding-optional",
-                    "title": "RSA usage detected in RSA-2048",
-                    "cryptoAssetName": "RSA-2048",
-                    "status": "QUANTUM_VULNERABLE",
-                    "reason": "The algorithm is explicitly recognized as vulnerable.",
-                    "algorithm": "RSA",
-                    "componentName": "RSA-2048",
-                }
-            },
-        )
-
-        body = response.json()
-
-        self.assertEqual(200, response.status_code)
-        self.assertEqual("finding-optional", body["findingId"])
-        self.assertIn("classified as quantum-vulnerable", body["riskExplanation"])
-
-    @patch.dict(
-        "os.environ",
-        {
-            "OLLAMA_BASE_URL": "http://ollama.test:11434",
-            "OLLAMA_MODEL": "test-model",
-        },
-    )
-    @patch("main.httpx.post")
-    def test_explains_finding_with_genai_when_ollama_model_is_configured(
-        self,
-        httpx_post: Mock,
-    ) -> None:
-        httpx_response = Mock()
-        httpx_response.json.return_value = {
-            "response": (
-                '{"findingId":"finding-ignored-by-service",'
-                '"summary":"GenAI summary.",'
-                '"riskExplanation":"GenAI risk explanation.",'
-                '"migrationConsiderations":["GenAI migration step."],'
-                '"suggestedTests":["GenAI test."],'
-                '"limitations":["Generated from structured finding data only."]}'
-            )
+def finding_payload(
+    *,
+    finding_id: str = "finding-1",
+    title: str = "RSA-OAEP usage detected in bcprov-jdk18on",
+    crypto_asset_name: str = "bcprov-jdk18on",
+    status: str = "QUANTUM_VULNERABLE",
+    reason: str = "The algorithm is explicitly recognized as vulnerable.",
+    algorithm: str | None = "RSA-OAEP",
+    component_name: str | None = "bcprov-jdk18on",
+    component_version: str | None = "1.78",
+    recommendation: str = "Assess migration impact.",
+    evidence: list[str] | None = None,
+) -> dict:
+    return {
+        "finding": {
+            "id": finding_id,
+            "title": title,
+            "cryptoAssetName": crypto_asset_name,
+            "status": status,
+            "reason": reason,
+            "algorithm": algorithm,
+            "componentName": component_name,
+            "componentVersion": component_version,
+            "recommendation": recommendation,
+            "evidence": (
+                evidence
+                if evidence is not None
+                else [f"property:evidra.crypto.algorithm={algorithm}"]
+            ),
         }
-        httpx_post.return_value = httpx_response
+    }
 
-        response = self.client.post(
-            "/findings/explain",
-            json={
-                "finding": {
-                    "id": "finding-4",
-                    "title": "RSA usage detected in auth-service",
-                    "cryptoAssetName": "auth-service",
-                    "status": "QUANTUM_VULNERABLE",
-                    "reason": "The algorithm is explicitly recognized as vulnerable.",
-                    "algorithm": "RSA",
-                    "componentName": "auth-service",
-                    "componentVersion": "2.1.0",
-                    "recommendation": "Assess migration impact.",
-                    "evidence": ["property:evidra.crypto.algorithm=RSA"],
-                }
-            },
+
+def finding_input(**overrides: object) -> FindingInput:
+    payload = finding_payload(**overrides)["finding"]
+    return FindingInput.model_validate(payload)
+
+
+def test_health_returns_ok(client: TestClient) -> None:
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "service": "ai-service"}
+
+
+def test_explains_quantum_vulnerable_finding_without_ollama(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_MODEL", "")
+
+    response = client.post("/findings/explain", json=finding_payload())
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-1"
+    assert body["summary"] == (
+        "RSA-OAEP was detected in bcprov-jdk18on with status QUANTUM_VULNERABLE."
+    )
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "Map the affected code paths and external integrations." in body[
+        "migrationConsiderations"
+    ]
+    assert "Verify old data remains readable or verifiable during migration." in body[
+        "suggestedTests"
+    ]
+    assert "GenAI is disabled because OLLAMA_MODEL is not configured." in body["limitations"]
+    assert any(
+        limitation.startswith("Local RAG context used: pqc-threat-model")
+        for limitation in body["limitations"]
+    )
+    assert any(
+        item.startswith("Review local RAG context:")
+        for item in body["migrationConsiderations"]
+    )
+
+
+def test_explains_post_quantum_finding_without_ollama(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_MODEL", "")
+
+    response = client.post(
+        "/findings/explain",
+        json=finding_payload(
+            finding_id="finding-2",
+            title="ML-KEM usage detected in pqc-provider",
+            crypto_asset_name="pqc-provider",
+            status="POST_QUANTUM",
+            reason="The algorithm is explicitly recognized as post-quantum.",
+            algorithm="ML-KEM",
+            component_name="pqc-provider",
+            component_version="0.1.0",
+            recommendation="Validate interoperability.",
+        ),
+    )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-2"
+    assert "classified as post-quantum" in body["riskExplanation"]
+    assert "Validate provider support and algorithm parameters." in body[
+        "migrationConsiderations"
+    ]
+    assert "Test interoperability with configured providers." in body["suggestedTests"]
+
+
+def test_explains_review_required_finding_without_ollama(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_MODEL", "")
+
+    response = client.post(
+        "/findings/explain",
+        json=finding_payload(
+            finding_id="finding-3",
+            title="AES-GCM usage detected in crypto-utils",
+            crypto_asset_name="crypto-utils",
+            status="REVIEW_REQUIRED",
+            reason="The algorithm is not explicitly classified yet.",
+            algorithm="AES-GCM",
+            component_name="crypto-utils",
+            component_version="1.0.0",
+            recommendation="Review manually.",
+        ),
+    )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-3"
+    assert "not explicitly classified" in body["riskExplanation"]
+    assert "Confirm what the algorithm is used for." in body["migrationConsiderations"]
+    assert "Add characterization tests before changing the implementation." in body[
+        "suggestedTests"
+    ]
+
+
+def test_explains_finding_when_optional_details_are_missing(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_MODEL", "")
+
+    response = client.post(
+        "/findings/explain",
+        json=finding_payload(
+            finding_id="finding-optional",
+            title="RSA usage detected in RSA-2048",
+            crypto_asset_name="RSA-2048",
+            algorithm="RSA",
+            component_name=None,
+            component_version=None,
+            recommendation="",
+            evidence=[],
+        ),
+    )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-optional"
+    assert body["summary"] == "RSA was detected in RSA-2048 with status QUANTUM_VULNERABLE."
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+
+
+def test_explains_finding_with_genai_when_ollama_model_is_configured(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://ollama.test:11434")
+    monkeypatch.setenv("OLLAMA_MODEL", "test-model")
+    httpx_post = Mock()
+    httpx_response = Mock()
+    httpx_response.json.return_value = {
+        "response": (
+            '{"findingId":"finding-ignored-by-service",'
+            '"summary":"GenAI summary.",'
+            '"riskExplanation":"GenAI risk explanation.",'
+            '"migrationConsiderations":["GenAI migration step."],'
+            '"suggestedTests":["GenAI test."],'
+            '"limitations":["Generated from structured finding data only."]}'
         )
+    }
+    httpx_post.return_value = httpx_response
+    monkeypatch.setattr("main.httpx.post", httpx_post)
 
-        body = response.json()
+    response = client.post(
+        "/findings/explain",
+        json=finding_payload(
+            finding_id="finding-4",
+            title="RSA usage detected in auth-service",
+            crypto_asset_name="auth-service",
+            algorithm="RSA",
+            component_name="auth-service",
+            component_version="2.1.0",
+        ),
+    )
 
-        self.assertEqual(200, response.status_code)
-        self.assertEqual("finding-4", body["findingId"])
-        self.assertEqual("GenAI summary.", body["summary"])
-        self.assertEqual("GenAI risk explanation.", body["riskExplanation"])
-        self.assertIn("GenAI migration step.", body["migrationConsiderations"])
-        self.assertIn("GenAI test.", body["suggestedTests"])
-        httpx_post.assert_called_once()
-        self.assertEqual("http://ollama.test:11434/api/generate", httpx_post.call_args.args[0])
-        self.assertEqual(
-            "test-model",
-            httpx_post.call_args.kwargs["json"]["model"],
-        )
-        self.assertFalse(httpx_post.call_args.kwargs["json"]["stream"])
-        self.assertEqual("json", httpx_post.call_args.kwargs["json"]["format"])
-        prompt = httpx_post.call_args.kwargs["json"]["prompt"]
-        model_input = json.loads(prompt.split("Input:\n", 1)[1])
-        self.assertEqual("RSA", model_input["normalizedContext"]["algorithm"])
-        self.assertTrue(
-            any(
-                snippet["id"] == "pqc-threat-model"
-                for snippet in model_input["retrievedKnowledge"]
-            )
-        )
-
-    @patch.dict("os.environ", {"OLLAMA_MODEL": "test-model"})
-    @patch("main.httpx.post")
-    def test_falls_back_to_deterministic_explanation_when_genai_fails(
-        self,
-        httpx_post: Mock,
-    ) -> None:
-        httpx_post.side_effect = RuntimeError("network unavailable")
-
-        response = self.client.post(
-            "/findings/explain",
-            json={
-                "finding": {
-                    "id": "finding-5",
-                    "title": "RSA usage detected in auth-service",
-                    "cryptoAssetName": "auth-service",
-                    "status": "QUANTUM_VULNERABLE",
-                    "reason": "The algorithm is explicitly recognized as vulnerable.",
-                    "algorithm": "RSA",
-                    "componentName": "auth-service",
-                    "componentVersion": "2.1.0",
-                    "recommendation": "Assess migration impact.",
-                    "evidence": ["property:evidra.crypto.algorithm=RSA"],
-                }
-            },
-        )
-
-        body = response.json()
-
-        self.assertEqual(200, response.status_code)
-        self.assertEqual("finding-5", body["findingId"])
-        self.assertIn("classified as quantum-vulnerable", body["riskExplanation"])
-        self.assertIn(
-            "GenAI explanation failed; deterministic fallback was used.",
-            body["limitations"],
-        )
-        self.assertIn(
-            "GenAI response handling failed: RuntimeError.",
-            body["limitations"],
-        )
-        self.assertTrue(
-            any(
-                limitation.startswith("Local RAG context used: pqc-threat-model")
-                for limitation in body["limitations"]
-            )
-        )
-
-    def test_rejects_invalid_explain_request(self) -> None:
-        response = self.client.post("/findings/explain", json={"finding": {"id": "finding-1"}})
-
-        self.assertEqual(422, response.status_code)
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-4"
+    assert body["summary"] == "GenAI summary."
+    assert body["riskExplanation"] == "GenAI risk explanation."
+    assert "GenAI migration step." in body["migrationConsiderations"]
+    assert "GenAI test." in body["suggestedTests"]
+    httpx_post.assert_called_once()
+    assert httpx_post.call_args.args[0] == "http://ollama.test:11434/api/generate"
+    assert httpx_post.call_args.kwargs["json"]["model"] == "test-model"
+    assert httpx_post.call_args.kwargs["json"]["stream"] is False
+    assert httpx_post.call_args.kwargs["json"]["format"] == "json"
+    prompt = httpx_post.call_args.kwargs["json"]["prompt"]
+    model_input = json.loads(prompt.split("Input:\n", 1)[1])
+    assert model_input["normalizedContext"]["algorithm"] == "RSA"
+    assert any(
+        snippet["id"] == "pqc-threat-model"
+        for snippet in model_input["retrievedKnowledge"]
+    )
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_falls_back_to_deterministic_explanation_when_genai_fails(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_MODEL", "test-model")
+    httpx_post = Mock(side_effect=RuntimeError("network unavailable"))
+    monkeypatch.setattr("main.httpx.post", httpx_post)
+
+    response = client.post(
+        "/findings/explain",
+        json=finding_payload(
+            finding_id="finding-5",
+            title="RSA usage detected in auth-service",
+            crypto_asset_name="auth-service",
+            algorithm="RSA",
+            component_name="auth-service",
+            component_version="2.1.0",
+        ),
+    )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-5"
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
+    assert "GenAI response handling failed: RuntimeError." in body["limitations"]
+    assert any(
+        limitation.startswith("Local RAG context used: pqc-threat-model")
+        for limitation in body["limitations"]
+    )
+
+
+def test_retrieves_local_context_for_review_required_algorithms() -> None:
+    context = retrieve_context(
+        finding_input(
+            finding_id="finding-review",
+            title="AES-GCM usage detected in crypto-utils",
+            crypto_asset_name="crypto-utils",
+            status="REVIEW_REQUIRED",
+            reason="The algorithm is not explicitly classified yet.",
+            algorithm="AES-GCM",
+        ),
+        "AES-GCM",
+    )
+
+    assert [snippet["id"] for snippet in context] == ["review-required"]
+
+
+def test_deterministic_explanation_reports_missing_local_context() -> None:
+    finding = finding_input(
+        finding_id="finding-unknown",
+        title="CustomCipher usage detected in local-lib",
+        crypto_asset_name="local-lib",
+        status="REVIEW_REQUIRED",
+        reason="The algorithm is not explicitly classified yet.",
+        algorithm="CustomCipher",
+        component_name="local-lib",
+    )
+
+    explanation = build_deterministic_explanation(
+        finding=finding,
+        algorithm="CustomCipher",
+        component="local-lib",
+        retrieved_context=[],
+        extra_limitations=["GenAI is disabled because OLLAMA_MODEL is not configured."],
+    )
+
+    assert explanation.findingId == "finding-unknown"
+    assert "not explicitly classified" in explanation.riskExplanation
+    assert "No local RAG context matched this finding." in explanation.limitations
+
+
+def test_rejects_invalid_explain_request(client: TestClient) -> None:
+    response = client.post("/findings/explain", json={"finding": {"id": "finding-1"}})
+
+    assert response.status_code == 422

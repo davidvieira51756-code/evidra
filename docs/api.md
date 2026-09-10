@@ -176,6 +176,8 @@ POST /api/findings/explain
 
 The `core-api` then forwards the structured finding to the `ai-service`.
 
+For local non-Docker runs, the Core API defaults to `http://localhost:8000`. In Docker Compose, it is configured to call `http://ai-service:8000`. The proxy timeout defaults to 5 seconds and can be configured with `EVIDRA_AI_SERVICE_TIMEOUT_SECONDS`.
+
 ### GenAI Configuration
 
 ```powershell

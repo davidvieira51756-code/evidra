@@ -88,6 +88,8 @@ cd apps/core-api
 mvn spring-boot:run
 ```
 
+The Core API forwards finding explanation requests to the AI service. For local non-Docker runs it defaults to `http://localhost:8000`; override with `EVIDRA_AI_SERVICE_BASE_URL` when needed. The proxy request timeout defaults to 5 seconds and can be changed with `EVIDRA_AI_SERVICE_TIMEOUT_SECONDS`.
+
 ### Frontend
 
 ```powershell
@@ -124,6 +126,21 @@ curl.exe -F "file=@src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:
 ```
 
 The MVP API contract is documented in [docs/api.md](docs/api.md).
+
+## Verification
+
+Run the current test/build checks from the repository root:
+
+```powershell
+cd apps/ai-service
+.\.venv\Scripts\python.exe -m pytest
+
+cd ..\core-api
+mvn test
+
+cd ..\frontend
+npm.cmd run build
+```
 
 ## RAG Scope
 

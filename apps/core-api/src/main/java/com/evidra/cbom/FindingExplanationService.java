@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -18,13 +19,16 @@ public class FindingExplanationService {
     private final HttpClient httpClient;
     private final URI explainUri;
     private final ObjectMapper objectMapper;
+    private final Duration aiServiceTimeout;
 
     public FindingExplanationService(
             ObjectMapper objectMapper,
-            @Value("${evidra.ai-service.base-url:http://localhost:8000}") String aiServiceBaseUrl) {
+            @Value("${evidra.ai-service.base-url:http://localhost:8000}") String aiServiceBaseUrl,
+            @Value("${evidra.ai-service.timeout-seconds:5}") long aiServiceTimeoutSeconds) {
         this.httpClient = HttpClient.newHttpClient();
-        this.explainUri = URI.create(aiServiceBaseUrl + "/findings/explain");
+        this.explainUri = URI.create(aiServiceBaseUrl.replaceAll("/+$", "") + "/findings/explain");
         this.objectMapper = objectMapper;
+        this.aiServiceTimeout = Duration.ofSeconds(aiServiceTimeoutSeconds);
     }
 
     public FindingExplanationResponse explain(FindingExplanationRequest request) {
@@ -32,6 +36,7 @@ public class FindingExplanationService {
 
         HttpRequest httpRequest = HttpRequest.newBuilder(explainUri)
                 .version(HttpClient.Version.HTTP_1_1)
+                .timeout(aiServiceTimeout)
                 .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
