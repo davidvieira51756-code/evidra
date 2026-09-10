@@ -1,11 +1,11 @@
 import json
-import os
+from typing import Annotated
 
-import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from providers import AIProvider, AIProviderError, OllamaProvider
 
 load_dotenv()
 
@@ -97,18 +97,28 @@ app.add_middleware(
 )
 
 
+default_ai_provider = OllamaProvider()
+
+
+def get_ai_provider() -> AIProvider:
+    return default_ai_provider
+
+
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(status="ok", service="ai-service")
 
 
 @app.post("/findings/explain", response_model=ExplainFindingResponse)
-def explain_finding(request: ExplainFindingRequest) -> ExplainFindingResponse:
+def explain_finding(
+    request: ExplainFindingRequest,
+    provider: Annotated[AIProvider, Depends(get_ai_provider)],
+) -> ExplainFindingResponse:
     finding = request.finding
     algorithm = finding.algorithm or "unknown algorithm"
     component = finding.componentName or finding.cryptoAssetName
     retrieved_context = retrieve_context(finding, algorithm)
-    llm_response = build_llm_explanation(finding, algorithm, component, retrieved_context)
+    llm_response = build_llm_explanation(finding, algorithm, component, retrieved_context, provider)
 
     if llm_response is not None:
         return llm_response
@@ -118,7 +128,7 @@ def explain_finding(request: ExplainFindingRequest) -> ExplainFindingResponse:
         algorithm=algorithm,
         component=component,
         retrieved_context=retrieved_context,
-        extra_limitations=["GenAI is disabled because OLLAMA_MODEL is not configured."],
+        extra_limitations=[provider.disabled_reason],
     )
 
 
@@ -127,21 +137,17 @@ def build_llm_explanation(
     algorithm: str,
     component: str,
     retrieved_context: list[dict],
+    provider: AIProvider,
 ) -> ExplainFindingResponse | None:
-    model = os.getenv("OLLAMA_MODEL")
-    if not model:
+    if not provider.is_configured:
         return None
 
     try:
-        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-        response = httpx.post(
-            f"{base_url}/api/generate",
-            json=build_ollama_payload(model, finding, algorithm, component, retrieved_context),
-            timeout=30,
+        provider_response = provider.generate(
+            build_explanation_prompt(finding, algorithm, component, retrieved_context)
         )
-        response.raise_for_status()
-        return parse_ollama_response(response.json(), finding.id)
-    except Exception as exception:
+        return parse_provider_response(provider_response, finding.id)
+    except AIProviderError as exception:
         return build_deterministic_explanation(
             finding=finding,
             algorithm=algorithm,
@@ -152,68 +158,57 @@ def build_llm_explanation(
                 describe_llm_failure(exception),
             ],
         )
+    except Exception as exception:
+        return build_deterministic_explanation(
+            finding=finding,
+            algorithm=algorithm,
+            component=component,
+            retrieved_context=retrieved_context,
+            extra_limitations=[
+                "GenAI explanation failed; deterministic fallback was used.",
+                f"GenAI response handling failed: {exception.__class__.__name__}.",
+            ],
+        )
 
 
-def build_ollama_payload(
-    model: str,
+def build_explanation_prompt(
     finding: FindingInput,
     algorithm: str,
     component: str,
     retrieved_context: list[dict],
-) -> dict:
-    return {
-        "model": model,
-        "stream": False,
-        "format": "json",
-        "prompt": (
-            "You are Evidra's cryptography migration analyst. Explain a single CBOM finding.\n"
-            "Use only the structured finding data and retrieved knowledge snippets provided by the "
-            "application. Do not claim to have inspected source code, certificates, keystores, runtime "
-            "configuration, or logs. Keep the response practical, concise, and conservative. When "
-            "retrieved snippets are insufficient, say so in limitations.\n\n"
-            "Return only valid JSON with this exact shape:\n"
-            "{\n"
-            '  "findingId": "string",\n'
-            '  "summary": "string",\n'
-            '  "riskExplanation": "string",\n'
-            '  "migrationConsiderations": ["string"],\n'
-            '  "suggestedTests": ["string"],\n'
-            '  "limitations": ["string"]\n'
-            "}\n\n"
-            "Input:\n"
-            + json.dumps(
-                {
-                    "finding": finding.model_dump(),
-                    "normalizedContext": {
-                        "algorithm": algorithm,
-                        "component": component,
-                    },
-                    "retrievedKnowledge": retrieved_context,
+) -> str:
+    return (
+        "You are Evidra's cryptography migration analyst. Explain a single CBOM finding.\n"
+        "Use only the structured finding data and retrieved knowledge snippets provided by the "
+        "application. Do not claim to have inspected source code, certificates, keystores, runtime "
+        "configuration, or logs. Keep the response practical, concise, and conservative. When "
+        "retrieved snippets are insufficient, say so in limitations.\n\n"
+        "Return only valid JSON with this exact shape:\n"
+        "{\n"
+        '  "findingId": "string",\n'
+        '  "summary": "string",\n'
+        '  "riskExplanation": "string",\n'
+        '  "migrationConsiderations": ["string"],\n'
+        '  "suggestedTests": ["string"],\n'
+        '  "limitations": ["string"]\n'
+        "}\n\n"
+        "Input:\n"
+        + json.dumps(
+            {
+                "finding": finding.model_dump(),
+                "normalizedContext": {
+                    "algorithm": algorithm,
+                    "component": component,
                 },
-                ensure_ascii=True,
-            )
-        ),
-    }
-
-
-def describe_llm_failure(exception: Exception) -> str:
-    if isinstance(exception, httpx.HTTPStatusError):
-        response_text = exception.response.text.replace("\n", " ")
-        return (
-            f"Ollama API returned HTTP {exception.response.status_code}: "
-            f"{truncate(response_text, 240)}"
+                "retrievedKnowledge": retrieved_context,
+            },
+            ensure_ascii=True,
         )
-
-    if isinstance(exception, httpx.RequestError):
-        return f"Ollama API request failed before receiving a response: {exception.__class__.__name__}."
-
-    return f"GenAI response handling failed: {exception.__class__.__name__}."
+    )
 
 
-def truncate(value: str, max_length: int) -> str:
-    if len(value) <= max_length:
-        return value
-    return value[: max_length - 3] + "..."
+def describe_llm_failure(exception: AIProviderError) -> str:
+    return str(exception)
 
 
 def retrieve_context(finding: FindingInput, algorithm: str, limit: int = 3) -> list[dict]:
@@ -243,8 +238,8 @@ def retrieve_context(finding: FindingInput, algorithm: str, limit: int = 3) -> l
     ]
 
 
-def parse_ollama_response(response_body: dict, expected_finding_id: str) -> ExplainFindingResponse:
-    parsed = json.loads(response_body["response"])
+def parse_provider_response(response_text: str, expected_finding_id: str) -> ExplainFindingResponse:
+    parsed = json.loads(response_text)
     parsed["findingId"] = expected_finding_id
     return ExplainFindingResponse.model_validate(parsed)
 

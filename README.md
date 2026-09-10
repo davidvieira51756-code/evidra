@@ -45,7 +45,7 @@ evidra/
 
 - `apps/frontend`: web UI for importing CBOM files, viewing findings, explaining findings, and exporting reports.
 - `apps/core-api`: main API. Validates CBOM files, extracts crypto assets, classifies findings, generates analysis/report output, and proxies finding explanation requests to the AI service.
-- `apps/ai-service`: optional AI service. Uses local RAG snippets and, when configured, Ollama to produce structured finding explanations.
+- `apps/ai-service`: optional AI service. Uses local RAG snippets and an AI provider boundary. Ollama is the current provider for structured finding explanations when configured.
 
 ## Local Setup
 
@@ -73,6 +73,8 @@ python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 If `OLLAMA_MODEL` is missing, Ollama is unavailable, or the model call fails, the service still returns a deterministic fallback explanation using local RAG context.
+
+The AI service keeps provider-specific invocation behind a small provider abstraction. Ollama remains the only implemented provider and the existing `OLLAMA_BASE_URL` and `OLLAMA_MODEL` environment variables are still supported.
 
 When running through Docker Compose, keep Ollama running on the host and set `OLLAMA_MODEL` in your shell or a root `.env` file:
 
@@ -145,6 +147,8 @@ npm.cmd run build
 ## RAG Scope
 
 RAG is currently local and minimal. The AI service contains curated knowledge snippets in code and retrieves relevant snippets based on the finding status, algorithm, title, and reason.
+
+The provider boundary is intentionally separate from RAG: retrieval and deterministic fallback remain application logic, while Ollama-specific HTTP invocation and response extraction live in the provider implementation.
 
 There is no vector database, embedding pipeline, persistence layer, or contextual source-code analysis yet.
 

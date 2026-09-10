@@ -166,7 +166,7 @@ POST /findings/explain
 
 This endpoint lives in `apps/ai-service`.
 
-It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge snippets relevant to the finding, then passes that retrieved context to the model. When `OLLAMA_MODEL` is configured, the service calls a local Ollama `/api/generate` endpoint and asks for a structured JSON explanation. Without a configured model, or if the model call fails, it returns the deterministic fallback explanation.
+It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge snippets relevant to the finding, then passes that retrieved context through the configured AI provider. Ollama is the current provider. When `OLLAMA_MODEL` is configured, the Ollama provider calls `/api/generate` and asks for a structured JSON explanation. Without a configured model, or if the provider/model call fails, it returns the deterministic fallback explanation.
 
 The MVP frontend calls the `core-api` proxy endpoint:
 
@@ -188,6 +188,8 @@ $env:OLLAMA_MODEL="llama3.1:8b"
 `OLLAMA_BASE_URL` is optional. If it is not set, the AI service uses `http://localhost:11434`.
 
 `OLLAMA_MODEL` is required for GenAI explanations. If it is not set, the service uses the deterministic fallback.
+
+Ollama-specific HTTP behavior is isolated behind the AI service provider implementation. The external `/findings/explain` response shape is unchanged.
 
 Install Ollama from https://ollama.com/download and pull the configured model before starting the service:
 
