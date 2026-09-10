@@ -10,7 +10,7 @@ services:
       context: ./apps/core-api
     environment:
       EVIDRA_AI_SERVICE_BASE_URL: http://ai-service:8000
-      EVIDRA_AI_SERVICE_TIMEOUT_SECONDS: 5
+      EVIDRA_AI_SERVICE_TIMEOUT_SECONDS: 45
     depends_on:
       - ai-service
     ports:

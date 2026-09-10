@@ -250,7 +250,7 @@ It does not yet use embeddings, vector search, reranking, external documents, Qd
     "Verify old data remains readable or verifiable during migration."
   ],
   "limitations": [
-    "This explanation is generated from structured finding data only.",
+    "This explanation is generated from structured finding data and retrieved evidence.",
     "It does not inspect source code, historical data, certificates, keystores, or runtime configuration."
   ],
   "sourceReferences": [

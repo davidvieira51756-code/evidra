@@ -134,6 +134,10 @@ def test_explains_quantum_vulnerable_finding_when_provider_is_disabled(
     assert "Verify old data remains readable or verifiable during migration." in body[
         "suggestedTests"
     ]
+    assert (
+        "This explanation is generated from structured finding data and retrieved evidence."
+        in body["limitations"]
+    )
     assert "GenAI is disabled because OLLAMA_MODEL is not configured." in body["limitations"]
     assert any(
         "nist-fips-203/nist-fips-203:ml-kem-overview" in limitation

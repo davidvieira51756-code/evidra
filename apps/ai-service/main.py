@@ -314,7 +314,7 @@ def build_deterministic_explanation(
         migrationConsiderations=build_migration_considerations(finding.status, retrieved_context),
         suggestedTests=build_suggested_tests(finding.status),
         limitations=[
-            "This explanation is generated from structured finding data only.",
+            "This explanation is generated from structured finding data and retrieved evidence.",
             "It does not inspect source code, historical data, certificates, keystores, or runtime configuration.",
             *build_retrieval_limitations(retrieved_context),
             *extra_limitations,

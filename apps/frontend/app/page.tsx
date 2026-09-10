@@ -397,14 +397,14 @@ function ExplanationList({ title, items }: { title: string; items: string[] }) {
 function SourceReferenceList({ sources }: { sources: SourceReference[] }) {
   return (
     <div className="mt-4">
-      <h5 className="text-sm font-medium text-[#4f5851]">Sources</h5>
+      <h5 className="text-sm font-medium text-[#4f5851]">Retrieved evidence sources</h5>
       <ul className="mt-2 flex flex-col gap-2">
         {sources.map((source) => (
-          <li className="rounded bg-white px-3 py-2 text-sm leading-6" key={source.chunkId}>
+          <li className="flex flex-col gap-1 rounded bg-white px-3 py-2 text-sm leading-6" key={source.chunkId}>
             <a className="font-medium underline" href={source.reference} rel="noreferrer" target="_blank">
               {source.title}
             </a>
-            <span className="block text-[#666963]">
+            <span className="text-[#666963]">
               {source.publisher} · {source.section} · {source.sourceId}
             </span>
           </li>
