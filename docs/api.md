@@ -166,7 +166,7 @@ POST /findings/explain
 
 This endpoint lives in `apps/ai-service`.
 
-It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge snippets relevant to the finding, then passes that retrieved context through the configured AI provider. Ollama is the current provider. When `OLLAMA_MODEL` is configured, the Ollama provider calls `/api/generate` and asks for a structured JSON explanation. Without a configured model, or if the provider/model call fails, it returns the deterministic fallback explanation.
+It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge snippets relevant to the finding, then passes that retrieved context through the configured AI provider. Ollama is the current provider. When `OLLAMA_MODEL` is configured, the Ollama provider calls `/api/generate` and asks for a structured JSON explanation. The AI service parses and validates provider output with the existing Pydantic response schema before returning it. Without a configured model, or if the provider/model call fails or returns invalid structured output, it returns the deterministic fallback explanation.
 
 The MVP frontend calls the `core-api` proxy endpoint:
 

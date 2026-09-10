@@ -4,7 +4,7 @@ from typing import Annotated
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from providers import AIProvider, AIProviderError, OllamaProvider
 
 load_dotenv()
@@ -33,12 +33,33 @@ class ExplainFindingRequest(BaseModel):
 
 
 class ExplainFindingResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     findingId: str
     summary: str
     riskExplanation: str
     migrationConsiderations: list[str]
     suggestedTests: list[str]
     limitations: list[str]
+
+    @field_validator("findingId", "summary", "riskExplanation")
+    @classmethod
+    def require_non_empty_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be empty")
+        return value
+
+    @field_validator("migrationConsiderations", "suggestedTests", "limitations")
+    @classmethod
+    def require_non_empty_string_list(cls, value: list[str]) -> list[str]:
+        if not value:
+            raise ValueError("must contain at least one item")
+
+        for item in value:
+            if not item.strip():
+                raise ValueError("items must not be empty")
+
+        return value
 
 
 KNOWLEDGE_SNIPPETS = [
@@ -192,6 +213,8 @@ def build_explanation_prompt(
         '  "suggestedTests": ["string"],\n'
         '  "limitations": ["string"]\n'
         "}\n\n"
+        "Do not include text outside the JSON object. Do not include extra fields. "
+        "All string fields and array items must be non-empty.\n\n"
         "Input:\n"
         + json.dumps(
             {

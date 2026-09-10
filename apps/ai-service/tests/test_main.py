@@ -300,6 +300,188 @@ def test_malformed_provider_response_falls_back_to_deterministic_explanation(
     assert "GenAI response handling failed: JSONDecodeError." in body["limitations"]
 
 
+def test_provider_response_with_missing_required_field_falls_back(
+    client: TestClient,
+) -> None:
+    use_provider(
+        FakeProvider(
+            response=(
+                '{"findingId":"finding-ignored-by-service",'
+                '"summary":"GenAI summary.",'
+                '"migrationConsiderations":["GenAI migration step."],'
+                '"suggestedTests":["GenAI test."],'
+                '"limitations":["Generated from structured finding data only."]}'
+            )
+        )
+    )
+
+    response = client.post("/findings/explain", json=finding_payload(finding_id="finding-7"))
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-7"
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
+    assert "GenAI response handling failed: ValidationError." in body["limitations"]
+
+
+def test_provider_response_with_wrong_field_type_falls_back(
+    client: TestClient,
+) -> None:
+    use_provider(
+        FakeProvider(
+            response=(
+                '{"findingId":"finding-ignored-by-service",'
+                '"summary":42,'
+                '"riskExplanation":"GenAI risk explanation.",'
+                '"migrationConsiderations":["GenAI migration step."],'
+                '"suggestedTests":["GenAI test."],'
+                '"limitations":["Generated from structured finding data only."]}'
+            )
+        )
+    )
+
+    response = client.post("/findings/explain", json=finding_payload(finding_id="finding-8"))
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-8"
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
+    assert "GenAI response handling failed: ValidationError." in body["limitations"]
+
+
+def test_provider_response_with_malformed_list_falls_back(
+    client: TestClient,
+) -> None:
+    use_provider(
+        FakeProvider(
+            response=(
+                '{"findingId":"finding-ignored-by-service",'
+                '"summary":"GenAI summary.",'
+                '"riskExplanation":"GenAI risk explanation.",'
+                '"migrationConsiderations":"not a list",'
+                '"suggestedTests":["GenAI test."],'
+                '"limitations":["Generated from structured finding data only."]}'
+            )
+        )
+    )
+
+    response = client.post("/findings/explain", json=finding_payload(finding_id="finding-9"))
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-9"
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
+    assert "GenAI response handling failed: ValidationError." in body["limitations"]
+
+
+def test_provider_response_with_empty_required_value_falls_back(
+    client: TestClient,
+) -> None:
+    use_provider(
+        FakeProvider(
+            response=(
+                '{"findingId":"finding-ignored-by-service",'
+                '"summary":" ",'
+                '"riskExplanation":"GenAI risk explanation.",'
+                '"migrationConsiderations":["GenAI migration step."],'
+                '"suggestedTests":["GenAI test."],'
+                '"limitations":["Generated from structured finding data only."]}'
+            )
+        )
+    )
+
+    response = client.post("/findings/explain", json=finding_payload(finding_id="finding-10"))
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-10"
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
+    assert "GenAI response handling failed: ValidationError." in body["limitations"]
+
+
+def test_provider_response_with_empty_list_item_falls_back(
+    client: TestClient,
+) -> None:
+    use_provider(
+        FakeProvider(
+            response=(
+                '{"findingId":"finding-ignored-by-service",'
+                '"summary":"GenAI summary.",'
+                '"riskExplanation":"GenAI risk explanation.",'
+                '"migrationConsiderations":[" "],'
+                '"suggestedTests":["GenAI test."],'
+                '"limitations":["Generated from structured finding data only."]}'
+            )
+        )
+    )
+
+    response = client.post("/findings/explain", json=finding_payload(finding_id="finding-11"))
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-11"
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
+    assert "GenAI response handling failed: ValidationError." in body["limitations"]
+
+
+def test_provider_response_with_extra_text_falls_back(
+    client: TestClient,
+) -> None:
+    use_provider(
+        FakeProvider(
+            response=(
+                'Here is the JSON: {"findingId":"finding-ignored-by-service",'
+                '"summary":"GenAI summary.",'
+                '"riskExplanation":"GenAI risk explanation.",'
+                '"migrationConsiderations":["GenAI migration step."],'
+                '"suggestedTests":["GenAI test."],'
+                '"limitations":["Generated from structured finding data only."]}'
+            )
+        )
+    )
+
+    response = client.post("/findings/explain", json=finding_payload(finding_id="finding-12"))
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-12"
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
+    assert "GenAI response handling failed: JSONDecodeError." in body["limitations"]
+
+
+def test_provider_response_with_unexpected_field_falls_back(
+    client: TestClient,
+) -> None:
+    use_provider(
+        FakeProvider(
+            response=(
+                '{"findingId":"finding-ignored-by-service",'
+                '"summary":"GenAI summary.",'
+                '"riskExplanation":"GenAI risk explanation.",'
+                '"migrationConsiderations":["GenAI migration step."],'
+                '"suggestedTests":["GenAI test."],'
+                '"limitations":["Generated from structured finding data only."],'
+                '"confidence":0.9}'
+            )
+        )
+    )
+
+    response = client.post("/findings/explain", json=finding_payload(finding_id="finding-13"))
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-13"
+    assert "classified as quantum-vulnerable" in body["riskExplanation"]
+    assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
+    assert "GenAI response handling failed: ValidationError." in body["limitations"]
+
+
 def test_ollama_provider_reads_configuration_and_invokes_generate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
