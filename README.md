@@ -17,7 +17,7 @@ The current MVP can:
 - generate a structured CBOM analysis
 - export a Markdown report
 - explain individual findings through an optional FastAPI AI service
-- use local RAG snippets to add context to explanations
+- use a local curated knowledge corpus with source attribution to add context to explanations
 - fall back to deterministic explanations when GenAI is unavailable or quota-limited
 
 Current algorithm classification:
@@ -45,7 +45,7 @@ evidra/
 
 - `apps/frontend`: web UI for importing CBOM files, viewing findings, explaining findings, and exporting reports.
 - `apps/core-api`: main API. Validates CBOM files, extracts crypto assets, classifies findings, generates analysis/report output, and proxies finding explanation requests to the AI service.
-- `apps/ai-service`: optional AI service. Uses local RAG snippets and an AI provider boundary. Ollama is the current provider for structured finding explanations when configured.
+- `apps/ai-service`: optional AI service. Uses a local curated knowledge corpus, source-aware retrieval, and an AI provider boundary. Ollama is the current provider for structured finding explanations when configured.
 
 ## Local Setup
 
@@ -72,7 +72,7 @@ cd apps/ai-service
 python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-If `OLLAMA_MODEL` is missing, Ollama is unavailable, or the model call fails, the service still returns a deterministic fallback explanation using local RAG context.
+If `OLLAMA_MODEL` is missing, Ollama is unavailable, or the model call fails, the service still returns a deterministic fallback explanation using retrieved local evidence where available.
 
 The AI service keeps provider-specific invocation behind a small provider abstraction. Ollama remains the only implemented provider and the existing `OLLAMA_BASE_URL` and `OLLAMA_MODEL` environment variables are still supported.
 
@@ -146,9 +146,11 @@ npm.cmd run build
 
 ## RAG Scope
 
-RAG is currently local and minimal. The AI service contains curated knowledge snippets in code and retrieves relevant snippets based on the finding status, algorithm, title, and reason.
+RAG is currently local and minimal. The AI service loads a curated offline corpus from `apps/ai-service/knowledge_corpus.json`. Documents and chunks have stable source IDs and references, and retrieval returns structured results with provenance. The current retriever is a baseline keyword implementation over finding status, algorithm, title, reason, and explicit chunk keywords.
 
-The provider boundary is intentionally separate from RAG: retrieval and deterministic fallback remain application logic, while Ollama-specific HTTP invocation and response extraction live in the provider implementation.
+Initial sources are NIST FIPS 203, FIPS 204, FIPS 205, SP 800-227, and CSWP 39upd1. Add trusted sources by adding a document entry and one or more chunks to `knowledge_corpus.json`; no documents are fetched at runtime.
+
+Retrieved content is passed to the model as bounded evidence, not as instructions. The provider boundary is intentionally separate from RAG: retrieval and deterministic fallback remain application logic, while Ollama-specific HTTP invocation and response extraction live in the provider implementation.
 
 There is no vector database, embedding pipeline, persistence layer, or contextual source-code analysis yet.
 

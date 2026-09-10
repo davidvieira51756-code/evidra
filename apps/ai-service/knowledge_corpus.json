@@ -1,0 +1,101 @@
+{
+  "documents": [
+    {
+      "source_id": "nist-fips-203",
+      "title": "FIPS 203: Module-Lattice-Based Key-Encapsulation Mechanism Standard",
+      "publisher": "National Institute of Standards and Technology",
+      "reference": "https://doi.org/10.6028/NIST.FIPS.203",
+      "document_type": "standard",
+      "version": "Final, August 13, 2024",
+      "status": "final",
+      "chunks": [
+        {
+          "chunk_id": "nist-fips-203:ml-kem-overview",
+          "source_id": "nist-fips-203",
+          "section": "Overview",
+          "keywords": ["ML-KEM", "KEM", "key encapsulation", "post-quantum", "RSA-OAEP", "RSA"],
+          "content": "ML-KEM is a NIST-standardized post-quantum key-encapsulation mechanism for establishing shared secret keys over a public channel. It is relevant when replacing or redesigning RSA-OAEP and other key-establishment flows."
+        },
+        {
+          "chunk_id": "nist-fips-203:parameter-sets",
+          "source_id": "nist-fips-203",
+          "section": "Parameter sets",
+          "keywords": ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024", "parameter", "performance"],
+          "content": "ML-KEM defines parameter sets with different security and performance tradeoffs. Migration planning should account for provider support, key and ciphertext sizes, negotiated parameters, and interoperability."
+        }
+      ]
+    },
+    {
+      "source_id": "nist-fips-204",
+      "title": "FIPS 204: Module-Lattice-Based Digital Signature Standard",
+      "publisher": "National Institute of Standards and Technology",
+      "reference": "https://doi.org/10.6028/NIST.FIPS.204",
+      "document_type": "standard",
+      "version": "Final, August 13, 2024",
+      "status": "final",
+      "chunks": [
+        {
+          "chunk_id": "nist-fips-204:ml-dsa-overview",
+          "source_id": "nist-fips-204",
+          "section": "Overview",
+          "keywords": ["ML-DSA", "signature", "digital signature", "post-quantum", "ECDSA", "DSA"],
+          "content": "ML-DSA is a NIST-standardized post-quantum digital signature algorithm. Signature migrations should consider signature size, public key formats, certificate or token compatibility, and verification behavior."
+        }
+      ]
+    },
+    {
+      "source_id": "nist-fips-205",
+      "title": "FIPS 205: Stateless Hash-Based Digital Signature Standard",
+      "publisher": "National Institute of Standards and Technology",
+      "reference": "https://doi.org/10.6028/NIST.FIPS.205",
+      "document_type": "standard",
+      "version": "Final, August 13, 2024",
+      "status": "final",
+      "chunks": [
+        {
+          "chunk_id": "nist-fips-205:slh-dsa-overview",
+          "source_id": "nist-fips-205",
+          "section": "Overview",
+          "keywords": ["SLH-DSA", "signature", "hash-based", "post-quantum", "ECDSA", "DSA"],
+          "content": "SLH-DSA is a NIST-standardized stateless hash-based digital signature algorithm. Migration analysis should account for larger signatures, performance, verification requirements, and long-term validation needs."
+        }
+      ]
+    },
+    {
+      "source_id": "nist-sp-800-227",
+      "title": "SP 800-227: Recommendations for Key-Encapsulation Mechanisms",
+      "publisher": "National Institute of Standards and Technology",
+      "reference": "https://doi.org/10.6028/NIST.SP.800-227",
+      "document_type": "recommendation",
+      "version": "Final, September 2025",
+      "status": "final",
+      "chunks": [
+        {
+          "chunk_id": "nist-sp-800-227:kem-usage",
+          "source_id": "nist-sp-800-227",
+          "section": "KEM usage",
+          "keywords": ["KEM", "key establishment", "key exchange", "encapsulation", "decapsulation", "ML-KEM"],
+          "content": "KEMs are used under defined conditions to establish shared secret keys over public channels. Implementations should consider key ownership, encapsulation and decapsulation behavior, protocol context, and secure use of the derived shared secret."
+        }
+      ]
+    },
+    {
+      "source_id": "nist-cswp-39-upd1",
+      "title": "CSWP 39upd1: Considerations for Achieving Crypto Agility",
+      "publisher": "National Institute of Standards and Technology",
+      "reference": "https://doi.org/10.6028/NIST.CSWP.39-upd1",
+      "document_type": "white paper",
+      "version": "Final, updated June 29, 2026",
+      "status": "final",
+      "chunks": [
+        {
+          "chunk_id": "nist-cswp-39-upd1:crypto-agility",
+          "source_id": "nist-cswp-39-upd1",
+          "section": "Crypto agility",
+          "keywords": ["crypto agility", "migration", "interoperability", "algorithm", "QUANTUM_VULNERABLE", "REVIEW_REQUIRED", "RSA", "AES", "SHA", "HMAC", "unknown"],
+          "content": "Crypto agility is the capability to replace and adapt cryptographic algorithms in systems while preserving security and operations. Migration planning should inventory dependencies, isolate cryptographic choices, test compatibility, and manage phased transitions."
+        }
+      ]
+    }
+  ]
+}

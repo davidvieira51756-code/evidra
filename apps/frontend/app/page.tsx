@@ -40,6 +40,17 @@ type FindingExplanation = {
   migrationConsiderations: string[];
   suggestedTests: string[];
   limitations: string[];
+  sourceReferences: SourceReference[];
+};
+
+type SourceReference = {
+  sourceId: string;
+  title: string;
+  publisher: string;
+  reference: string;
+  documentType: string;
+  section: string;
+  chunkId: string;
 };
 
 type ApiError = {
@@ -361,6 +372,9 @@ function FindingExplanationPanel({ explanation }: { explanation: FindingExplanat
       <ExplanationList title="Migration considerations" items={explanation.migrationConsiderations} />
       <ExplanationList title="Suggested tests" items={explanation.suggestedTests} />
       <ExplanationList title="Limitations" items={explanation.limitations} />
+      {explanation.sourceReferences.length > 0 ? (
+        <SourceReferenceList sources={explanation.sourceReferences} />
+      ) : null}
     </section>
   );
 }
@@ -373,6 +387,26 @@ function ExplanationList({ title, items }: { title: string; items: string[] }) {
         {items.map((item) => (
           <li className="rounded bg-white px-3 py-2 text-sm leading-6" key={item}>
             {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SourceReferenceList({ sources }: { sources: SourceReference[] }) {
+  return (
+    <div className="mt-4">
+      <h5 className="text-sm font-medium text-[#4f5851]">Sources</h5>
+      <ul className="mt-2 flex flex-col gap-2">
+        {sources.map((source) => (
+          <li className="rounded bg-white px-3 py-2 text-sm leading-6" key={source.chunkId}>
+            <a className="font-medium underline" href={source.reference} rel="noreferrer" target="_blank">
+              {source.title}
+            </a>
+            <span className="block text-[#666963]">
+              {source.publisher} · {source.section} · {source.sourceId}
+            </span>
           </li>
         ))}
       </ul>

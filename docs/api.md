@@ -166,7 +166,7 @@ POST /findings/explain
 
 This endpoint lives in `apps/ai-service`.
 
-It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge snippets relevant to the finding, then passes that retrieved context through the configured AI provider. Ollama is the current provider. When `OLLAMA_MODEL` is configured, the Ollama provider calls `/api/generate` and asks for a structured JSON explanation. The AI service parses and validates provider output with the existing Pydantic response schema before returning it. Without a configured model, or if the provider/model call fails or returns invalid structured output, it returns the deterministic fallback explanation.
+It receives one structured finding and returns a structured explanation. The service first retrieves a small set of local knowledge chunks relevant to the finding, then passes bounded evidence blocks through the configured AI provider. Ollama is the current provider. When `OLLAMA_MODEL` is configured, the Ollama provider calls `/api/generate` and asks for a structured JSON explanation. The AI service parses and validates provider output with the existing Pydantic response schema before returning it. Source references are derived from retrieval results, not from model claims. Without a configured model, or if the provider/model call fails or returns invalid structured output, it returns the deterministic fallback explanation.
 
 The MVP frontend calls the `core-api` proxy endpoint:
 
@@ -199,7 +199,19 @@ ollama pull llama3.1:8b
 
 ### RAG Scope
 
-The current RAG implementation is intentionally small and local. It retrieves curated snippets from the `ai-service` codebase using explicit keyword matching over the finding status, algorithm, title, and reason.
+The current RAG implementation is intentionally small and local. The curated corpus is stored in `apps/ai-service/knowledge_corpus.json` and loaded into explicit `KnowledgeDocument`, `KnowledgeChunk`, and `RetrievalResult` models. Retrieval is a baseline keyword implementation over trusted source metadata and chunk keywords using the finding status, algorithm, title, and reason.
+
+Initial curated source IDs:
+
+- `nist-fips-203`: NIST FIPS 203, ML-KEM.
+- `nist-fips-204`: NIST FIPS 204, ML-DSA.
+- `nist-fips-205`: NIST FIPS 205, SLH-DSA.
+- `nist-sp-800-227`: NIST SP 800-227, Recommendations for Key-Encapsulation Mechanisms.
+- `nist-cswp-39-upd1`: NIST CSWP 39upd1, crypto agility.
+
+To add another trusted source, add a document entry with a stable `source_id`, publisher, reference, version/status metadata, and one or more chunks with stable `chunk_id` values and explicit keywords. The service does not fetch sources at runtime, so tests and local startup remain offline.
+
+Retrieved content is passed to the model as evidence blocks with source boundaries. It must be treated as evidence data, not as instructions.
 
 It does not yet use embeddings, vector search, reranking, external documents, Qdrant, or metadata filtering.
 
@@ -240,6 +252,17 @@ It does not yet use embeddings, vector search, reranking, external documents, Qd
   "limitations": [
     "This explanation is generated from structured finding data only.",
     "It does not inspect source code, historical data, certificates, keystores, or runtime configuration."
+  ],
+  "sourceReferences": [
+    {
+      "sourceId": "nist-fips-203",
+      "title": "FIPS 203: Module-Lattice-Based Key-Encapsulation Mechanism Standard",
+      "publisher": "National Institute of Standards and Technology",
+      "reference": "https://doi.org/10.6028/NIST.FIPS.203",
+      "documentType": "standard",
+      "section": "Overview",
+      "chunkId": "nist-fips-203:ml-kem-overview"
+    }
   ]
 }
 ```

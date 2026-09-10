@@ -11,6 +11,7 @@ from main import (
     get_ai_provider,
     retrieve_context,
 )
+from knowledge import get_default_retriever, load_knowledge_corpus
 from providers import AIProviderError, OllamaProvider
 
 
@@ -135,8 +136,13 @@ def test_explains_quantum_vulnerable_finding_when_provider_is_disabled(
     ]
     assert "GenAI is disabled because OLLAMA_MODEL is not configured." in body["limitations"]
     assert any(
-        limitation.startswith("Local RAG context used: pqc-threat-model")
+        "nist-fips-203/nist-fips-203:ml-kem-overview" in limitation
         for limitation in body["limitations"]
+    )
+    assert any(
+        source["sourceId"] == "nist-fips-203"
+        and source["chunkId"] == "nist-fips-203:ml-kem-overview"
+        for source in body["sourceReferences"]
     )
     assert provider.prompts == []
 
@@ -250,10 +256,13 @@ def test_explanation_logic_uses_configured_provider(client: TestClient) -> None:
     assert len(provider.prompts) == 1
     model_input = json.loads(provider.prompts[0].split("Input:\n", 1)[1])
     assert model_input["normalizedContext"]["algorithm"] == "RSA"
+    assert "retrievedEvidence" in model_input
     assert any(
-        snippet["id"] == "pqc-threat-model"
-        for snippet in model_input["retrievedKnowledge"]
+        evidence["sourceId"] == "nist-cswp-39-upd1"
+        for evidence in model_input["retrievedEvidence"]
     )
+    assert "[SOURCE nist-cswp-39-upd1" in model_input["retrievedEvidence"][0]["evidenceBlock"]
+    assert body["sourceReferences"][0]["sourceId"] == "nist-cswp-39-upd1"
 
 
 def test_provider_failure_falls_back_to_deterministic_explanation(
@@ -280,9 +289,10 @@ def test_provider_failure_falls_back_to_deterministic_explanation(
     assert "GenAI explanation failed; deterministic fallback was used." in body["limitations"]
     assert "Provider failed." in body["limitations"]
     assert any(
-        limitation.startswith("Local RAG context used: pqc-threat-model")
+        limitation.startswith("Retrieved evidence used: nist-cswp-39-upd1/")
         for limitation in body["limitations"]
     )
+    assert body["sourceReferences"][0]["sourceId"] == "nist-cswp-39-upd1"
 
 
 def test_malformed_provider_response_falls_back_to_deterministic_explanation(
@@ -530,7 +540,28 @@ def test_ollama_provider_wraps_provider_failures(
         provider.generate("prompt text")
 
 
-def test_retrieves_local_context_for_review_required_algorithms() -> None:
+def test_knowledge_documents_load_with_stable_source_ids() -> None:
+    corpus = load_knowledge_corpus()
+
+    source_ids = [document.source_id for document in corpus.documents]
+    assert "nist-fips-203" in source_ids
+    assert "nist-fips-204" in source_ids
+    assert "nist-fips-205" in source_ids
+    assert "nist-sp-800-227" in source_ids
+    assert "nist-cswp-39-upd1" in source_ids
+
+
+def test_knowledge_chunks_retain_source_provenance() -> None:
+    corpus = load_knowledge_corpus()
+
+    for document in corpus.documents:
+        assert document.chunks
+        for chunk in document.chunks:
+            assert chunk.source_id == document.source_id
+            assert chunk.chunk_id.startswith(document.source_id)
+
+
+def test_retrieval_returns_structured_results_for_review_required_algorithms() -> None:
     context = retrieve_context(
         finding_input(
             finding_id="finding-review",
@@ -543,7 +574,16 @@ def test_retrieves_local_context_for_review_required_algorithms() -> None:
         "AES-GCM",
     )
 
-    assert [snippet["id"] for snippet in context] == ["review-required"]
+    assert context
+    assert context[0].document.source_id == "nist-cswp-39-upd1"
+    assert context[0].chunk.source_id == "nist-cswp-39-upd1"
+    assert context[0].matched_terms
+
+
+def test_unrelated_query_does_not_fabricate_evidence() -> None:
+    results = get_default_retriever().retrieve({"COMPLETELY_UNRELATED_TERM"})
+
+    assert results == []
 
 
 def test_deterministic_explanation_reports_missing_local_context() -> None:
@@ -562,12 +602,14 @@ def test_deterministic_explanation_reports_missing_local_context() -> None:
         algorithm="CustomCipher",
         component="local-lib",
         retrieved_context=[],
+        source_references=[],
         extra_limitations=["GenAI is disabled because OLLAMA_MODEL is not configured."],
     )
 
     assert explanation.findingId == "finding-unknown"
     assert "not explicitly classified" in explanation.riskExplanation
-    assert "No local RAG context matched this finding." in explanation.limitations
+    assert "No retrieved knowledge source matched this finding." in explanation.limitations
+    assert explanation.sourceReferences == []
 
 
 def test_rejects_invalid_explain_request(client: TestClient) -> None:

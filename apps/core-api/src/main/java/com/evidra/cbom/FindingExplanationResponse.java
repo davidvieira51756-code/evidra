@@ -8,5 +8,16 @@ public record FindingExplanationResponse(
         String riskExplanation,
         List<String> migrationConsiderations,
         List<String> suggestedTests,
-        List<String> limitations) {
+        List<String> limitations,
+        List<SourceReference> sourceReferences) {
+
+    public record SourceReference(
+            String sourceId,
+            String title,
+            String publisher,
+            String reference,
+            String documentType,
+            String section,
+            String chunkId) {
+    }
 }
