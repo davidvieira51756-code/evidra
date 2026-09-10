@@ -269,6 +269,45 @@ def test_explanation_logic_uses_configured_provider(client: TestClient) -> None:
     assert body["sourceReferences"][0]["sourceId"] == "nist-cswp-39-upd1"
 
 
+def test_provider_cannot_fabricate_source_references(client: TestClient) -> None:
+    provider_response = (
+        '{"findingId":"finding-ignored-by-service",'
+        '"summary":"GenAI summary.",'
+        '"riskExplanation":"GenAI risk explanation.",'
+        '"migrationConsiderations":["GenAI migration step."],'
+        '"suggestedTests":["GenAI test."],'
+        '"limitations":["Generated from structured finding data and retrieved evidence."],'
+        '"sourceReferences":[{'
+        '"sourceId":"fake-source",'
+        '"title":"Fake source",'
+        '"publisher":"Fake publisher",'
+        '"reference":"https://example.invalid/fake",'
+        '"documentType":"fake",'
+        '"section":"Fake section",'
+        '"chunkId":"fake-source:fake-chunk"'
+        "}]}"
+    )
+    use_provider(FakeProvider(response=provider_response))
+
+    response = client.post(
+        "/findings/explain",
+        json=finding_payload(
+            finding_id="finding-fabricated-source",
+            title="RSA usage detected in auth-service",
+            crypto_asset_name="auth-service",
+            algorithm="RSA",
+            component_name="auth-service",
+            component_version="2.1.0",
+        ),
+    )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["findingId"] == "finding-fabricated-source"
+    assert not any(source["sourceId"] == "fake-source" for source in body["sourceReferences"])
+    assert body["sourceReferences"][0]["sourceId"] == "nist-cswp-39-upd1"
+
+
 def test_provider_failure_falls_back_to_deterministic_explanation(
     client: TestClient,
 ) -> None:

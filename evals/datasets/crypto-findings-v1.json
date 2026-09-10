@@ -1,0 +1,367 @@
+{
+  "datasetId": "crypto-findings-v1",
+  "description": "Initial deterministic retrieval baseline for Evidra cryptographic finding explanations.",
+  "retrievalStrategy": "keyword",
+  "cases": [
+    {
+      "caseId": "rsa-oaep-quantum-vulnerable",
+      "category": "rsa-quantum-vulnerable",
+      "finding": {
+        "id": "eval-1",
+        "title": "RSA-OAEP usage detected in bcprov-jdk18on",
+        "cryptoAssetName": "bcprov-jdk18on",
+        "status": "QUANTUM_VULNERABLE",
+        "reason": "The algorithm is explicitly recognized as vulnerable to cryptographically relevant quantum attacks.",
+        "algorithm": "RSA-OAEP",
+        "componentName": "bcprov-jdk18on",
+        "componentVersion": "1.78",
+        "recommendation": "Assess migration impact and plan a transition path to a post-quantum or hybrid design.",
+        "evidence": ["property:evidra.crypto.algorithm=RSA-OAEP"]
+      },
+      "expectedSourceIds": ["nist-fips-203", "nist-cswp-39-upd1"],
+      "notes": "RSA-OAEP should connect both to ML-KEM replacement context and crypto agility migration planning."
+    },
+    {
+      "caseId": "rsa-key-establishment",
+      "category": "rsa-quantum-vulnerable",
+      "finding": {
+        "id": "eval-2",
+        "title": "RSA key establishment usage detected in payment-service",
+        "cryptoAssetName": "payment-service",
+        "status": "QUANTUM_VULNERABLE",
+        "reason": "RSA is used for key establishment and requires migration planning.",
+        "algorithm": "RSA",
+        "componentName": "payment-service",
+        "componentVersion": "2.4.0",
+        "recommendation": "Assess migration impact.",
+        "evidence": ["property:evidra.crypto.algorithm=RSA"]
+      },
+      "expectedSourceIds": ["nist-fips-203", "nist-cswp-39-upd1"],
+      "notes": "Uses current corpus RSA and migration keywords."
+    },
+    {
+      "caseId": "rsa-pss-signature-ambiguous",
+      "category": "ambiguous-signature",
+      "finding": {
+        "id": "eval-3",
+        "title": "RSA-PSS signature usage detected in auth-service",
+        "cryptoAssetName": "auth-service",
+        "status": "QUANTUM_VULNERABLE",
+        "reason": "The signature algorithm is explicitly recognized as vulnerable to cryptographically relevant quantum attacks.",
+        "algorithm": "RSA-PSS",
+        "componentName": "auth-service",
+        "componentVersion": "3.0.0",
+        "recommendation": "Assess migration impact.",
+        "evidence": ["property:evidra.crypto.algorithm=RSA-PSS"]
+      },
+      "expectedSourceIds": ["nist-cswp-39-upd1"],
+      "notes": "Current corpus has post-quantum signature sources but no RSA-PSS-specific signature guidance."
+    },
+    {
+      "caseId": "ecdsa-signature-migration",
+      "category": "signature-quantum-vulnerable",
+      "finding": {
+        "id": "eval-4",
+        "title": "ECDSA signature usage detected in identity-service",
+        "cryptoAssetName": "identity-service",
+        "status": "QUANTUM_VULNERABLE",
+        "reason": "ECDSA is a signature algorithm requiring migration planning.",
+        "algorithm": "ECDSA",
+        "componentName": "identity-service",
+        "componentVersion": "1.9.0",
+        "recommendation": "Assess migration impact.",
+        "evidence": ["property:evidra.crypto.algorithm=ECDSA"]
+      },
+      "expectedSourceIds": ["nist-fips-204", "nist-fips-205", "nist-cswp-39-upd1"],
+      "notes": "Should retrieve signature migration context and crypto agility."
+    },
+    {
+      "caseId": "dsa-signature-migration",
+      "category": "signature-quantum-vulnerable",
+      "finding": {
+        "id": "eval-5",
+        "title": "DSA signature usage detected in token-service",
+        "cryptoAssetName": "token-service",
+        "status": "QUANTUM_VULNERABLE",
+        "reason": "DSA is a signature algorithm requiring migration planning.",
+        "algorithm": "DSA",
+        "componentName": "token-service",
+        "componentVersion": "5.1.0",
+        "recommendation": "Assess migration impact.",
+        "evidence": ["property:evidra.crypto.algorithm=DSA"]
+      },
+      "expectedSourceIds": ["nist-fips-204", "nist-fips-205", "nist-cswp-39-upd1"],
+      "notes": "Should retrieve both post-quantum signature standards and agility guidance."
+    },
+    {
+      "caseId": "ml-kem-post-quantum",
+      "category": "ml-kem",
+      "finding": {
+        "id": "eval-6",
+        "title": "ML-KEM usage detected in pqc-provider",
+        "cryptoAssetName": "pqc-provider",
+        "status": "POST_QUANTUM",
+        "reason": "The algorithm is explicitly recognized as a post-quantum algorithm.",
+        "algorithm": "ML-KEM",
+        "componentName": "pqc-provider",
+        "componentVersion": "0.1.0",
+        "recommendation": "Validate interoperability.",
+        "evidence": ["property:evidra.crypto.algorithm=ML-KEM"]
+      },
+      "expectedSourceIds": ["nist-fips-203", "nist-sp-800-227"],
+      "notes": "ML-KEM should retrieve the standard and KEM usage guidance."
+    },
+    {
+      "caseId": "ml-kem-768-parameters",
+      "category": "ml-kem-parameters",
+      "finding": {
+        "id": "eval-7",
+        "title": "ML-KEM-768 usage detected in handshake-service",
+        "cryptoAssetName": "handshake-service",
+        "status": "POST_QUANTUM",
+        "reason": "The algorithm uses an ML-KEM parameter set and performance should be reviewed.",
+        "algorithm": "ML-KEM-768",
+        "componentName": "handshake-service",
+        "componentVersion": "1.2.3",
+        "recommendation": "Validate parameters and interoperability.",
+        "evidence": ["property:evidra.crypto.algorithm=ML-KEM-768"]
+      },
+      "expectedSourceIds": ["nist-fips-203"],
+      "notes": "Grounded in the FIPS 203 parameter-set chunk."
+    },
+    {
+      "caseId": "kem-usage-guidance",
+      "category": "kem-guidance",
+      "finding": {
+        "id": "eval-8",
+        "title": "KEM encapsulation usage detected in transport-service",
+        "cryptoAssetName": "transport-service",
+        "status": "POST_QUANTUM",
+        "reason": "KEM encapsulation and decapsulation behavior should be validated.",
+        "algorithm": "ML-KEM",
+        "componentName": "transport-service",
+        "componentVersion": "0.8.0",
+        "recommendation": "Validate KEM usage.",
+        "evidence": ["property:evidra.crypto.algorithm=ML-KEM"]
+      },
+      "expectedSourceIds": ["nist-fips-203", "nist-sp-800-227"],
+      "notes": "Expected to retrieve multiple KEM-related sources."
+    },
+    {
+      "caseId": "ml-dsa-post-quantum",
+      "category": "ml-dsa",
+      "finding": {
+        "id": "eval-9",
+        "title": "ML-DSA usage detected in certificate-service",
+        "cryptoAssetName": "certificate-service",
+        "status": "POST_QUANTUM",
+        "reason": "The algorithm is explicitly recognized as a post-quantum digital signature algorithm.",
+        "algorithm": "ML-DSA",
+        "componentName": "certificate-service",
+        "componentVersion": "0.3.0",
+        "recommendation": "Validate signature size and compatibility.",
+        "evidence": ["property:evidra.crypto.algorithm=ML-DSA"]
+      },
+      "expectedSourceIds": ["nist-fips-204"],
+      "notes": "Direct ML-DSA standard retrieval."
+    },
+    {
+      "caseId": "slh-dsa-post-quantum",
+      "category": "slh-dsa",
+      "finding": {
+        "id": "eval-10",
+        "title": "SLH-DSA usage detected in signing-service",
+        "cryptoAssetName": "signing-service",
+        "status": "POST_QUANTUM",
+        "reason": "The algorithm is explicitly recognized as a post-quantum hash-based digital signature algorithm.",
+        "algorithm": "SLH-DSA",
+        "componentName": "signing-service",
+        "componentVersion": "0.4.0",
+        "recommendation": "Validate signature size and performance.",
+        "evidence": ["property:evidra.crypto.algorithm=SLH-DSA"]
+      },
+      "expectedSourceIds": ["nist-fips-205"],
+      "notes": "Direct SLH-DSA standard retrieval."
+    },
+    {
+      "caseId": "post-quantum-signature-generic",
+      "category": "ambiguous-signature",
+      "finding": {
+        "id": "eval-11",
+        "title": "Post-quantum signature usage detected in document-service",
+        "cryptoAssetName": "document-service",
+        "status": "POST_QUANTUM",
+        "reason": "Signature size, verification behavior, and token compatibility should be checked.",
+        "algorithm": "ML-DSA",
+        "componentName": "document-service",
+        "componentVersion": "0.2.0",
+        "recommendation": "Validate signature behavior.",
+        "evidence": ["property:evidra.crypto.algorithm=ML-DSA"]
+      },
+      "expectedSourceIds": ["nist-fips-204", "nist-fips-205"],
+      "notes": "Ambiguous signature language may retrieve both signature standards."
+    },
+    {
+      "caseId": "crypto-agility-rsa-migration",
+      "category": "crypto-agility",
+      "finding": {
+        "id": "eval-12",
+        "title": "RSA migration planning required in legacy-api",
+        "cryptoAssetName": "legacy-api",
+        "status": "QUANTUM_VULNERABLE",
+        "reason": "Migration planning requires crypto agility, compatibility tests, and staged rollout.",
+        "algorithm": "RSA",
+        "componentName": "legacy-api",
+        "componentVersion": "4.2.0",
+        "recommendation": "Plan migration.",
+        "evidence": ["property:evidra.crypto.algorithm=RSA"]
+      },
+      "expectedSourceIds": ["nist-fips-203", "nist-cswp-39-upd1"],
+      "notes": "Expected to combine replacement and migration planning evidence."
+    },
+    {
+      "caseId": "aes-review-required",
+      "category": "review-required",
+      "finding": {
+        "id": "eval-13",
+        "title": "AES-GCM usage detected in storage-service",
+        "cryptoAssetName": "storage-service",
+        "status": "REVIEW_REQUIRED",
+        "reason": "The algorithm is not explicitly classified yet, so it requires manual review.",
+        "algorithm": "AES-GCM",
+        "componentName": "storage-service",
+        "componentVersion": "6.0.0",
+        "recommendation": "Review manually.",
+        "evidence": ["property:evidra.crypto.algorithm=AES-GCM"]
+      },
+      "expectedSourceIds": ["nist-cswp-39-upd1"],
+      "notes": "AES is only present in the current corpus as crypto agility review context."
+    },
+    {
+      "caseId": "sha-review-required",
+      "category": "review-required",
+      "finding": {
+        "id": "eval-14",
+        "title": "SHA-256 usage detected in digest-service",
+        "cryptoAssetName": "digest-service",
+        "status": "REVIEW_REQUIRED",
+        "reason": "The algorithm is not explicitly classified yet, so it requires manual review.",
+        "algorithm": "SHA-256",
+        "componentName": "digest-service",
+        "componentVersion": "2.0.0",
+        "recommendation": "Review manually.",
+        "evidence": ["property:evidra.crypto.algorithm=SHA-256"]
+      },
+      "expectedSourceIds": ["nist-cswp-39-upd1"],
+      "notes": "SHA is only present in the current corpus as crypto agility review context."
+    },
+    {
+      "caseId": "hmac-review-required",
+      "category": "review-required",
+      "finding": {
+        "id": "eval-15",
+        "title": "HMAC usage detected in session-service",
+        "cryptoAssetName": "session-service",
+        "status": "REVIEW_REQUIRED",
+        "reason": "The algorithm is not explicitly classified yet, so it requires manual review.",
+        "algorithm": "HMAC",
+        "componentName": "session-service",
+        "componentVersion": "7.0.0",
+        "recommendation": "Review manually.",
+        "evidence": ["property:evidra.crypto.algorithm=HMAC"]
+      },
+      "expectedSourceIds": ["nist-cswp-39-upd1"],
+      "notes": "HMAC is only present in the current corpus as crypto agility review context."
+    },
+    {
+      "caseId": "unknown-review-required",
+      "category": "review-required",
+      "finding": {
+        "id": "eval-16",
+        "title": "Unknown algorithm usage detected in local-lib",
+        "cryptoAssetName": "local-lib",
+        "status": "REVIEW_REQUIRED",
+        "reason": "The algorithm is not explicitly classified yet, so it requires manual review.",
+        "algorithm": "UnknownCipher",
+        "componentName": "local-lib",
+        "componentVersion": "1.0.0",
+        "recommendation": "Review manually.",
+        "evidence": ["property:evidra.crypto.algorithm=UnknownCipher"]
+      },
+      "expectedSourceIds": ["nist-cswp-39-upd1"],
+      "notes": "Current corpus includes unknown/review-required crypto agility terms."
+    },
+    {
+      "caseId": "interoperability-migration-planning",
+      "category": "crypto-agility",
+      "finding": {
+        "id": "eval-17",
+        "title": "Algorithm migration interoperability review detected in platform-service",
+        "cryptoAssetName": "platform-service",
+        "status": "REVIEW_REQUIRED",
+        "reason": "Migration planning should consider interoperability and phased transitions.",
+        "algorithm": "CustomCipher",
+        "componentName": "platform-service",
+        "componentVersion": "1.1.0",
+        "recommendation": "Review manually.",
+        "evidence": ["property:evidra.crypto.algorithm=CustomCipher"]
+      },
+      "expectedSourceIds": ["nist-cswp-39-upd1"],
+      "notes": "Crypto agility terminology should retrieve the agility source."
+    },
+    {
+      "caseId": "irrelevant-frontend-dependency",
+      "category": "irrelevant",
+      "finding": {
+        "id": "eval-18",
+        "title": "Frontend dependency version detected in web-client",
+        "cryptoAssetName": "web-client",
+        "status": "OBSERVATION",
+        "reason": "This finding only reports a UI dependency version.",
+        "algorithm": "React",
+        "componentName": "web-client",
+        "componentVersion": "16.2.10",
+        "recommendation": "No cryptographic review required.",
+        "evidence": ["component=web-client"]
+      },
+      "expectedSourceIds": [],
+      "notes": "Irrelevant case should not retrieve crypto evidence."
+    },
+    {
+      "caseId": "irrelevant-database-migration",
+      "category": "irrelevant",
+      "finding": {
+        "id": "eval-19",
+        "title": "Database schema migration detected in reporting-service",
+        "cryptoAssetName": "reporting-service",
+        "status": "OBSERVATION",
+        "reason": "This is a data model change with no cryptographic algorithm.",
+        "algorithm": "SQL",
+        "componentName": "reporting-service",
+        "componentVersion": "12.0",
+        "recommendation": "No cryptographic review required.",
+        "evidence": ["component=reporting-service"]
+      },
+      "expectedSourceIds": [],
+      "notes": "The word migration alone should not be treated as enough cryptographic evidence in this unrelated case."
+    },
+    {
+      "caseId": "empty-unrelated-signal",
+      "category": "irrelevant",
+      "finding": {
+        "id": "eval-20",
+        "title": "Build metadata detected in release pipeline",
+        "cryptoAssetName": "release pipeline",
+        "status": "OBSERVATION",
+        "reason": "Only release numbering metadata is present.",
+        "algorithm": "BuildMetadata",
+        "componentName": "release pipeline",
+        "componentVersion": "2026.09",
+        "recommendation": "No cryptographic review required.",
+        "evidence": ["component=release-pipeline"]
+      },
+      "expectedSourceIds": [],
+      "notes": "Control case for no-source correctness."
+    }
+  ]
+}

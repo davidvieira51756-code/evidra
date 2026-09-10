@@ -1,0 +1,782 @@
+{
+  "runId": "baseline",
+  "createdAt": "2026-09-10T23:12:39+00:00",
+  "datasetId": "crypto-findings-v1",
+  "datasetPath": "evals\\datasets\\crypto-findings-v1.json",
+  "retrievalStrategy": "keyword",
+  "caseCount": 20,
+  "metrics": {
+    "retrievalHitRate": {
+      "value": 1.0,
+      "hitCases": 17,
+      "evaluatedCases": 17,
+      "definition": "Cases with expected sources where at least one expected source ID was retrieved."
+    },
+    "sourcePrecision": {
+      "value": 0.75,
+      "truePositiveSourceIds": 27,
+      "retrievedSourceIds": 36,
+      "definition": "Expected retrieved source IDs divided by all retrieved source IDs, counted per case."
+    },
+    "sourceRecall": {
+      "value": 1.0,
+      "truePositiveSourceIds": 27,
+      "expectedSourceIds": 27,
+      "definition": "Expected retrieved source IDs divided by expected source IDs, counted per case."
+    },
+    "sourceF1": {
+      "value": 0.8571,
+      "definition": "Harmonic mean of source precision and source recall when both are defined."
+    },
+    "noSourceCorrectness": {
+      "value": 0.6667,
+      "correctCases": 2,
+      "evaluatedCases": 3,
+      "definition": "Cases with no expected sources where retrieval returned no sources."
+    }
+  },
+  "cases": [
+    {
+      "caseId": "rsa-oaep-quantum-vulnerable",
+      "category": "rsa-quantum-vulnerable",
+      "expectedSourceIds": [
+        "nist-fips-203",
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1",
+        "nist-fips-203"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility",
+        "nist-fips-203:ml-kem-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "QUANTUM_VULNERABLE",
+          "RSA"
+        ],
+        "nist-fips-203:ml-kem-overview": [
+          "RSA",
+          "RSA-OAEP"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "RSA-OAEP should connect both to ML-KEM replacement context and crypto agility migration planning."
+    },
+    {
+      "caseId": "rsa-key-establishment",
+      "category": "rsa-quantum-vulnerable",
+      "expectedSourceIds": [
+        "nist-fips-203",
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1",
+        "nist-fips-203"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility",
+        "nist-fips-203:ml-kem-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "MIGRATION",
+          "QUANTUM_VULNERABLE",
+          "RSA"
+        ],
+        "nist-fips-203:ml-kem-overview": [
+          "RSA"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Uses current corpus RSA and migration keywords."
+    },
+    {
+      "caseId": "rsa-pss-signature-ambiguous",
+      "category": "ambiguous-signature",
+      "expectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1",
+        "nist-fips-203",
+        "nist-fips-204"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility",
+        "nist-fips-203:ml-kem-overview",
+        "nist-fips-204:ml-dsa-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "QUANTUM_VULNERABLE",
+          "RSA"
+        ],
+        "nist-fips-203:ml-kem-overview": [
+          "RSA"
+        ],
+        "nist-fips-204:ml-dsa-overview": [
+          "SIGNATURE"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 0.3333,
+      "sourceRecall": 1.0,
+      "sourceF1": 0.5,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [
+        "nist-fips-203",
+        "nist-fips-204"
+      ],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Current corpus has post-quantum signature sources but no RSA-PSS-specific signature guidance."
+    },
+    {
+      "caseId": "ecdsa-signature-migration",
+      "category": "signature-quantum-vulnerable",
+      "expectedSourceIds": [
+        "nist-fips-204",
+        "nist-fips-205",
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1",
+        "nist-fips-204",
+        "nist-fips-205"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility",
+        "nist-fips-204:ml-dsa-overview",
+        "nist-fips-205:slh-dsa-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "MIGRATION",
+          "QUANTUM_VULNERABLE"
+        ],
+        "nist-fips-204:ml-dsa-overview": [
+          "ECDSA",
+          "SIGNATURE"
+        ],
+        "nist-fips-205:slh-dsa-overview": [
+          "ECDSA",
+          "SIGNATURE"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Should retrieve signature migration context and crypto agility."
+    },
+    {
+      "caseId": "dsa-signature-migration",
+      "category": "signature-quantum-vulnerable",
+      "expectedSourceIds": [
+        "nist-fips-204",
+        "nist-fips-205",
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1",
+        "nist-fips-204",
+        "nist-fips-205"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility",
+        "nist-fips-204:ml-dsa-overview",
+        "nist-fips-205:slh-dsa-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "MIGRATION",
+          "QUANTUM_VULNERABLE"
+        ],
+        "nist-fips-204:ml-dsa-overview": [
+          "DSA",
+          "SIGNATURE"
+        ],
+        "nist-fips-205:slh-dsa-overview": [
+          "DSA",
+          "SIGNATURE"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Should retrieve both post-quantum signature standards and agility guidance."
+    },
+    {
+      "caseId": "ml-kem-post-quantum",
+      "category": "ml-kem",
+      "expectedSourceIds": [
+        "nist-fips-203",
+        "nist-sp-800-227"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-fips-203",
+        "nist-sp-800-227",
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-fips-203:ml-kem-overview",
+        "nist-sp-800-227:kem-usage",
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-fips-203:ml-kem-overview": [
+          "KEM",
+          "ML-KEM"
+        ],
+        "nist-sp-800-227:kem-usage": [
+          "KEM",
+          "ML-KEM"
+        ],
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 0.6667,
+      "sourceRecall": 1.0,
+      "sourceF1": 0.8,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "ML-KEM should retrieve the standard and KEM usage guidance."
+    },
+    {
+      "caseId": "ml-kem-768-parameters",
+      "category": "ml-kem-parameters",
+      "expectedSourceIds": [
+        "nist-fips-203"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-fips-203",
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-fips-203:parameter-sets",
+        "nist-cswp-39-upd1:crypto-agility",
+        "nist-fips-203:ml-kem-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-fips-203:parameter-sets": [
+          "ML-KEM-768",
+          "PARAMETER",
+          "PERFORMANCE"
+        ],
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM"
+        ],
+        "nist-fips-203:ml-kem-overview": [
+          "KEM"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 0.5,
+      "sourceRecall": 1.0,
+      "sourceF1": 0.6667,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Grounded in the FIPS 203 parameter-set chunk."
+    },
+    {
+      "caseId": "kem-usage-guidance",
+      "category": "kem-guidance",
+      "expectedSourceIds": [
+        "nist-fips-203",
+        "nist-sp-800-227"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-sp-800-227",
+        "nist-fips-203"
+      ],
+      "retrievedChunkIds": [
+        "nist-sp-800-227:kem-usage",
+        "nist-fips-203:ml-kem-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-sp-800-227:kem-usage": [
+          "DECAPSULATION",
+          "ENCAPSULATION",
+          "KEM",
+          "ML-KEM"
+        ],
+        "nist-fips-203:ml-kem-overview": [
+          "KEM",
+          "ML-KEM"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Expected to retrieve multiple KEM-related sources."
+    },
+    {
+      "caseId": "ml-dsa-post-quantum",
+      "category": "ml-dsa",
+      "expectedSourceIds": [
+        "nist-fips-204"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-fips-204",
+        "nist-fips-205",
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-fips-204:ml-dsa-overview",
+        "nist-fips-205:slh-dsa-overview",
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-fips-204:ml-dsa-overview": [
+          "DSA",
+          "ML-DSA",
+          "SIGNATURE"
+        ],
+        "nist-fips-205:slh-dsa-overview": [
+          "DSA",
+          "SIGNATURE"
+        ],
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 0.3333,
+      "sourceRecall": 1.0,
+      "sourceF1": 0.5,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [
+        "nist-cswp-39-upd1",
+        "nist-fips-205"
+      ],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Direct ML-DSA standard retrieval."
+    },
+    {
+      "caseId": "slh-dsa-post-quantum",
+      "category": "slh-dsa",
+      "expectedSourceIds": [
+        "nist-fips-205"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-fips-205",
+        "nist-fips-204",
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-fips-205:slh-dsa-overview",
+        "nist-fips-204:ml-dsa-overview",
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-fips-205:slh-dsa-overview": [
+          "DSA",
+          "SIGNATURE",
+          "SLH-DSA"
+        ],
+        "nist-fips-204:ml-dsa-overview": [
+          "DSA",
+          "SIGNATURE"
+        ],
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 0.3333,
+      "sourceRecall": 1.0,
+      "sourceF1": 0.5,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [
+        "nist-cswp-39-upd1",
+        "nist-fips-204"
+      ],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Direct SLH-DSA standard retrieval."
+    },
+    {
+      "caseId": "post-quantum-signature-generic",
+      "category": "ambiguous-signature",
+      "expectedSourceIds": [
+        "nist-fips-204",
+        "nist-fips-205"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-fips-204",
+        "nist-fips-205"
+      ],
+      "retrievedChunkIds": [
+        "nist-fips-204:ml-dsa-overview",
+        "nist-fips-205:slh-dsa-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-fips-204:ml-dsa-overview": [
+          "ML-DSA",
+          "SIGNATURE"
+        ],
+        "nist-fips-205:slh-dsa-overview": [
+          "SIGNATURE"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Ambiguous signature language may retrieve both signature standards."
+    },
+    {
+      "caseId": "crypto-agility-rsa-migration",
+      "category": "crypto-agility",
+      "expectedSourceIds": [
+        "nist-fips-203",
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1",
+        "nist-fips-203"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility",
+        "nist-fips-203:ml-kem-overview"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "MIGRATION",
+          "QUANTUM_VULNERABLE",
+          "RSA"
+        ],
+        "nist-fips-203:ml-kem-overview": [
+          "RSA"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Expected to combine replacement and migration planning evidence."
+    },
+    {
+      "caseId": "aes-review-required",
+      "category": "review-required",
+      "expectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "AES",
+          "ALGORITHM",
+          "REVIEW_REQUIRED"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "AES is only present in the current corpus as crypto agility review context."
+    },
+    {
+      "caseId": "sha-review-required",
+      "category": "review-required",
+      "expectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "REVIEW_REQUIRED",
+          "SHA"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "SHA is only present in the current corpus as crypto agility review context."
+    },
+    {
+      "caseId": "hmac-review-required",
+      "category": "review-required",
+      "expectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "HMAC",
+          "REVIEW_REQUIRED"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "HMAC is only present in the current corpus as crypto agility review context."
+    },
+    {
+      "caseId": "unknown-review-required",
+      "category": "review-required",
+      "expectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "REVIEW_REQUIRED",
+          "UNKNOWN"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Current corpus includes unknown/review-required crypto agility terms."
+    },
+    {
+      "caseId": "interoperability-migration-planning",
+      "category": "crypto-agility",
+      "expectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "INTEROPERABILITY",
+          "MIGRATION",
+          "REVIEW_REQUIRED"
+        ]
+      },
+      "hit": true,
+      "noSourceExpected": false,
+      "noSourceCorrect": null,
+      "sourcePrecision": 1.0,
+      "sourceRecall": 1.0,
+      "sourceF1": 1.0,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Crypto agility terminology should retrieve the agility source."
+    },
+    {
+      "caseId": "irrelevant-frontend-dependency",
+      "category": "irrelevant",
+      "expectedSourceIds": [],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [],
+      "retrievedChunkIds": [],
+      "matchedTermsByChunk": {},
+      "hit": null,
+      "noSourceExpected": true,
+      "noSourceCorrect": true,
+      "sourcePrecision": null,
+      "sourceRecall": null,
+      "sourceF1": null,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Irrelevant case should not retrieve crypto evidence."
+    },
+    {
+      "caseId": "irrelevant-database-migration",
+      "category": "irrelevant",
+      "expectedSourceIds": [],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "retrievedChunkIds": [
+        "nist-cswp-39-upd1:crypto-agility"
+      ],
+      "matchedTermsByChunk": {
+        "nist-cswp-39-upd1:crypto-agility": [
+          "ALGORITHM",
+          "MIGRATION"
+        ]
+      },
+      "hit": null,
+      "noSourceExpected": true,
+      "noSourceCorrect": false,
+      "sourcePrecision": null,
+      "sourceRecall": null,
+      "sourceF1": null,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [
+        "nist-cswp-39-upd1"
+      ],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": false,
+      "notes": "The word migration alone should not be treated as enough cryptographic evidence in this unrelated case."
+    },
+    {
+      "caseId": "empty-unrelated-signal",
+      "category": "irrelevant",
+      "expectedSourceIds": [],
+      "forbiddenSourceIds": [],
+      "retrievedSourceIds": [],
+      "retrievedChunkIds": [],
+      "matchedTermsByChunk": {},
+      "hit": null,
+      "noSourceExpected": true,
+      "noSourceCorrect": true,
+      "sourcePrecision": null,
+      "sourceRecall": null,
+      "sourceF1": null,
+      "missingSourceIds": [],
+      "unexpectedSourceIds": [],
+      "forbiddenRetrievedSourceIds": [],
+      "passed": true,
+      "notes": "Control case for no-source correctness."
+    }
+  ],
+  "resultPath": "evals\\results\\baseline-keyword-crypto-findings-v1.json"
+}

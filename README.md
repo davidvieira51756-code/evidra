@@ -36,6 +36,7 @@ evidra/
 |   |-- frontend/    # Next.js UI
 |   |-- core-api/    # Java 21 Spring Boot API
 |   `-- ai-service/  # Python FastAPI GenAI/RAG service
+|-- evals/           # deterministic retrieval evaluation baseline
 |-- docs/
 |-- docker-compose.yml
 `-- README.md
@@ -129,15 +130,28 @@ curl.exe -F "file=@src/test/resources/cbom/rsa-oaep-cbom.json" http://localhost:
 
 The MVP API contract is documented in [docs/api.md](docs/api.md).
 
+## Evaluations
+
+Evidra has an offline deterministic evaluation baseline for the current keyword retrieval pipeline. It measures source-level retrieval behavior before embeddings, vector search, hybrid retrieval, or reranking are introduced.
+
+Run it from the repository root:
+
+```powershell
+.\apps\ai-service\.venv\Scripts\python.exe -m evals.runner
+```
+
+The versioned dataset is `evals/datasets/crypto-findings-v1.json`. Generated result JSON files are written under `evals/results/`; the fixed baseline artifact is `evals/results/baseline-keyword-crypto-findings-v1.json`.
+
+The evaluation system is documented in [docs/evals.md](docs/evals.md).
+
 ## Verification
 
 Run the current test/build checks from the repository root:
 
 ```powershell
-cd apps/ai-service
-.\.venv\Scripts\python.exe -m pytest
+.\apps\ai-service\.venv\Scripts\python.exe -m pytest
 
-cd ..\core-api
+cd apps/core-api
 mvn test
 
 cd ..\frontend
